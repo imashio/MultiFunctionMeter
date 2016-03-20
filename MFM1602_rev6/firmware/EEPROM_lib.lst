@@ -1,0 +1,187 @@
+   1               		.file	"EEPROM_lib.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 112               	.global	EEPROMinit
+ 114               	EEPROMinit:
+   1:EEPROM_lib.c  **** /*
+   2:EEPROM_lib.c  ****  *  EEPROM.c
+   3:EEPROM_lib.c  ****  *  
+   4:EEPROM_lib.c  ****  *
+   5:EEPROM_lib.c  ****  *  Created by Imashow on 8/8/10.
+   6:EEPROM_lib.c  ****  *  Copyright 2010 __MyCompanyName__. All rights reserved.
+   7:EEPROM_lib.c  ****  *
+   8:EEPROM_lib.c  ****  */
+   9:EEPROM_lib.c  **** 
+  10:EEPROM_lib.c  **** #include <avr/io.h>
+  11:EEPROM_lib.c  **** #include <avr/interrupt.h>
+  12:EEPROM_lib.c  **** #include <avr/eeprom.h>
+  13:EEPROM_lib.c  **** #include "EEPROM_lib.h"
+  14:EEPROM_lib.c  **** 
+  15:EEPROM_lib.c  **** void EEPROMinit(void){
+ 116               	.LM0:
+ 117               	.LFBB1:
+ 118               	/* prologue: function */
+ 119               	/* frame size = 0 */
+ 120               	/* stack size = 0 */
+ 121               	.L__stack_usage = 0
+  16:EEPROM_lib.c  **** 	// EEPROM initialize
+  17:EEPROM_lib.c  **** 	EEARH = 0x00;	// Upper EEPROM address (Valid only LSB 1-bit)
+ 123               	.LM1:
+ 124 0000 12BC      		out 66-32,__zero_reg__
+  18:EEPROM_lib.c  **** 	EEARL = 0x00;	// Lower EEPROM address
+ 126               	.LM2:
+ 127 0002 11BC      		out 65-32,__zero_reg__
+  19:EEPROM_lib.c  **** 	EEDR  = 0x00;	// EEPROM read & write data
+ 129               	.LM3:
+ 130 0004 10BC      		out 64-32,__zero_reg__
+  20:EEPROM_lib.c  **** 	EECR  = 0b00000000;	// EEPROM control register
+ 132               	.LM4:
+ 133 0006 1FBA      		out 63-32,__zero_reg__
+ 134               	/* epilogue start */
+  21:EEPROM_lib.c  **** 	//			|||||+ EERE  : EEPROM read enable
+  22:EEPROM_lib.c  **** 	//			||||+  EEPE  : EEPROM program enable
+  23:EEPROM_lib.c  **** 	//			|||+   EEMPE : EEPROM master program enable
+  24:EEPROM_lib.c  **** 	//			||+    EERIE : EEPROM ready interupt enable
+  25:EEPROM_lib.c  **** 	//			++     EEPM  : EEPROM program mode
+  26:EEPROM_lib.c  **** }
+ 136               	.LM5:
+ 137 0008 0895      		ret
+ 139               	.Lscope1:
+ 142               	.global	EEPROMwrite
+ 144               	EEPROMwrite:
+  27:EEPROM_lib.c  **** 
+  28:EEPROM_lib.c  **** void EEPROMwrite(unsigned int EEPROMaddress, unsigned char EEPROMdata){
+ 146               	.LM6:
+ 147               	.LFBB2:
+ 148               	/* prologue: function */
+ 149               	/* frame size = 0 */
+ 150               	/* stack size = 0 */
+ 151               	.L__stack_usage = 0
+  29:EEPROM_lib.c  **** 	while(EECR & (1<<EEPE))			// wait annother EEPROM programming
+ 153               	.LM7:
+ 154 000a 00C0      		rjmp .L3
+ 155               	.L4:
+  30:EEPROM_lib.c  **** 	while(SPMCSR & (1<<SELFPRGEN))	// wait self programing
+  31:EEPROM_lib.c  **** 	cli();							// disable intruput
+ 157               	.LM8:
+ 158               	/* #APP */
+ 159               	 ;  31 "EEPROM_lib.c" 1
+ 160 000c F894      		cli
+ 161               	 ;  0 "" 2
+ 162               	/* #NOAPP */
+ 163               	.L6:
+  30:EEPROM_lib.c  **** 	while(SPMCSR & (1<<SELFPRGEN))	// wait self programing
+ 165               	.LM9:
+ 166 000e 07B6      		in __tmp_reg__,87-32
+ 167 0010 00FC      		sbrc __tmp_reg__,0
+ 168 0012 00C0      		rjmp .L4
+ 169               	.L3:
+  29:EEPROM_lib.c  **** 	while(EECR & (1<<EEPE))			// wait annother EEPROM programming
+ 171               	.LM10:
+ 172 0014 F999      		sbic 63-32,1
+ 173 0016 00C0      		rjmp .L6
+  32:EEPROM_lib.c  **** 	EEARL = EEPROMaddress;
+ 175               	.LM11:
+ 176 0018 81BD      		out 65-32,r24
+  33:EEPROM_lib.c  **** 	EEDR  = EEPROMdata;
+ 178               	.LM12:
+ 179 001a 60BD      		out 64-32,r22
+  34:EEPROM_lib.c  **** 	EECR = _BV(EEMPE);				// set master program enable
+ 181               	.LM13:
+ 182 001c 84E0      		ldi r24,lo8(4)
+ 183 001e 8FBB      		out 63-32,r24
+  35:EEPROM_lib.c  **** 	EECR = _BV(EEPE);				// set program enable
+ 185               	.LM14:
+ 186 0020 82E0      		ldi r24,lo8(2)
+ 187 0022 8FBB      		out 63-32,r24
+  36:EEPROM_lib.c  **** 	sei();
+ 189               	.LM15:
+ 190               	/* #APP */
+ 191               	 ;  36 "EEPROM_lib.c" 1
+ 192 0024 7894      		sei
+ 193               	 ;  0 "" 2
+ 194               	/* epilogue start */
+  37:EEPROM_lib.c  **** }
+ 196               	.LM16:
+ 197               	/* #NOAPP */
+ 198 0026 0895      		ret
+ 200               	.Lscope2:
+ 202               	.global	EEPROMread
+ 204               	EEPROMread:
+  38:EEPROM_lib.c  **** 
+  39:EEPROM_lib.c  **** unsigned char EEPROMread(unsigned int EEPROMaddress){
+ 206               	.LM17:
+ 207               	.LFBB3:
+ 208               	/* prologue: function */
+ 209               	/* frame size = 0 */
+ 210               	/* stack size = 0 */
+ 211               	.L__stack_usage = 0
+  40:EEPROM_lib.c  **** 	while(EECR & (1<<EEPE))			// wait annother EEPROM programming
+ 213               	.LM18:
+ 214 0028 00C0      		rjmp .L8
+ 215               	.L9:
+  41:EEPROM_lib.c  **** 	while(SPMCSR & (1<<SELFPRGEN))	// wait self programing
+  42:EEPROM_lib.c  **** 	cli();							// disable intruput
+ 217               	.LM19:
+ 218               	/* #APP */
+ 219               	 ;  42 "EEPROM_lib.c" 1
+ 220 002a F894      		cli
+ 221               	 ;  0 "" 2
+ 222               	/* #NOAPP */
+ 223               	.L11:
+  41:EEPROM_lib.c  **** 	while(SPMCSR & (1<<SELFPRGEN))	// wait self programing
+ 225               	.LM20:
+ 226 002c 07B6      		in __tmp_reg__,87-32
+ 227 002e 00FC      		sbrc __tmp_reg__,0
+ 228 0030 00C0      		rjmp .L9
+ 229               	.L8:
+  40:EEPROM_lib.c  **** 	while(EECR & (1<<EEPE))			// wait annother EEPROM programming
+ 231               	.LM21:
+ 232 0032 F999      		sbic 63-32,1
+ 233 0034 00C0      		rjmp .L11
+  43:EEPROM_lib.c  **** 	EEARL = EEPROMaddress;
+ 235               	.LM22:
+ 236 0036 81BD      		out 65-32,r24
+  44:EEPROM_lib.c  **** 	EECR = _BV(EERE);				// set read enable
+ 238               	.LM23:
+ 239 0038 81E0      		ldi r24,lo8(1)
+ 240 003a 8FBB      		out 63-32,r24
+  45:EEPROM_lib.c  **** 	sei();
+ 242               	.LM24:
+ 243               	/* #APP */
+ 244               	 ;  45 "EEPROM_lib.c" 1
+ 245 003c 7894      		sei
+ 246               	 ;  0 "" 2
+  46:EEPROM_lib.c  **** 	return EEDR;
+ 248               	.LM25:
+ 249               	/* #NOAPP */
+ 250 003e 80B5      		in r24,64-32
+ 251               	/* epilogue start */
+  47:EEPROM_lib.c  **** }
+ 253               	.LM26:
+ 254 0040 0895      		ret
+ 256               	.Lscope3:
+ 258               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 EEPROM_lib.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:114    .text:00000000 EEPROMinit
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:144    .text:0000000a EEPROMwrite
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc6MVAG8.s:204    .text:00000028 EEPROMread
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss

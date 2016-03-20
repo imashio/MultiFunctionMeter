@@ -1,0 +1,347 @@
+   1               		.file	"facemark.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+  62               	.global	FaceMark_init
+  64               	FaceMark_init:
+   1:facemark.c    **** //
+   2:facemark.c    **** //  facemark.c
+   3:facemark.c    **** //  MFM_rev5
+   4:facemark.c    **** //
+   5:facemark.c    **** //  Created by imashio on 11/17/14.
+   6:facemark.c    **** //
+   7:facemark.c    **** //
+   8:facemark.c    **** 
+   9:facemark.c    **** #include "facemark.h"
+  10:facemark.c    **** #include "lcd.h"
+  11:facemark.c    **** 
+  12:facemark.c    **** // Set Facemark character
+  13:facemark.c    **** void FaceMark_init(void){
+  66               	.LM0:
+  67               	.LFBB1:
+  68               	/* prologue: function */
+  69               	/* frame size = 0 */
+  70               	/* stack size = 0 */
+  71               	.L__stack_usage = 0
+  14:facemark.c    ****     unsigned int code;
+  15:facemark.c    ****     unsigned int addr;
+  16:facemark.c    ****     
+  17:facemark.c    ****     //code 0-5 is used in "BarMeter"
+  18:facemark.c    ****     // "ω"
+  19:facemark.c    ****     code = 6;
+  20:facemark.c    ****     addr = 0;
+  21:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+  73               	.LM1:
+  74 0000 86E0      		ldi r24,lo8(6)
+  75 0002 60E0      		ldi r22,lo8(0)
+  76 0004 00D0      		rcall lcd_set_CGRAMaddr
+  22:facemark.c    ****     lcd_set_char(0b00000000);
+  78               	.LM2:
+  79 0006 80E0      		ldi r24,lo8(0)
+  80 0008 00D0      		rcall lcd_set_char
+  23:facemark.c    ****     addr = 1;
+  24:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+  82               	.LM3:
+  83 000a 86E0      		ldi r24,lo8(6)
+  84 000c 61E0      		ldi r22,lo8(1)
+  85 000e 00D0      		rcall lcd_set_CGRAMaddr
+  25:facemark.c    ****     lcd_set_char(0b00000000);
+  87               	.LM4:
+  88 0010 80E0      		ldi r24,lo8(0)
+  89 0012 00D0      		rcall lcd_set_char
+  26:facemark.c    ****     addr = 2;
+  27:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+  91               	.LM5:
+  92 0014 86E0      		ldi r24,lo8(6)
+  93 0016 62E0      		ldi r22,lo8(2)
+  94 0018 00D0      		rcall lcd_set_CGRAMaddr
+  28:facemark.c    ****     lcd_set_char(0b00000000);
+  96               	.LM6:
+  97 001a 80E0      		ldi r24,lo8(0)
+  98 001c 00D0      		rcall lcd_set_char
+  29:facemark.c    ****     addr = 3;
+  30:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 100               	.LM7:
+ 101 001e 86E0      		ldi r24,lo8(6)
+ 102 0020 63E0      		ldi r22,lo8(3)
+ 103 0022 00D0      		rcall lcd_set_CGRAMaddr
+  31:facemark.c    ****     lcd_set_char(0b00000000);
+ 105               	.LM8:
+ 106 0024 80E0      		ldi r24,lo8(0)
+ 107 0026 00D0      		rcall lcd_set_char
+  32:facemark.c    ****     addr = 4;
+  33:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 109               	.LM9:
+ 110 0028 86E0      		ldi r24,lo8(6)
+ 111 002a 64E0      		ldi r22,lo8(4)
+ 112 002c 00D0      		rcall lcd_set_CGRAMaddr
+  34:facemark.c    ****     lcd_set_char(0b00010001);
+ 114               	.LM10:
+ 115 002e 81E1      		ldi r24,lo8(17)
+ 116 0030 00D0      		rcall lcd_set_char
+  35:facemark.c    ****     addr = 5;
+  36:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 118               	.LM11:
+ 119 0032 86E0      		ldi r24,lo8(6)
+ 120 0034 65E0      		ldi r22,lo8(5)
+ 121 0036 00D0      		rcall lcd_set_CGRAMaddr
+  37:facemark.c    ****     lcd_set_char(0b00010101);
+ 123               	.LM12:
+ 124 0038 85E1      		ldi r24,lo8(21)
+ 125 003a 00D0      		rcall lcd_set_char
+  38:facemark.c    ****     addr = 6;
+  39:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 127               	.LM13:
+ 128 003c 86E0      		ldi r24,lo8(6)
+ 129 003e 66E0      		ldi r22,lo8(6)
+ 130 0040 00D0      		rcall lcd_set_CGRAMaddr
+  40:facemark.c    ****     lcd_set_char(0b00010101);
+ 132               	.LM14:
+ 133 0042 85E1      		ldi r24,lo8(21)
+ 134 0044 00D0      		rcall lcd_set_char
+  41:facemark.c    ****     addr = 7;
+  42:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 136               	.LM15:
+ 137 0046 86E0      		ldi r24,lo8(6)
+ 138 0048 67E0      		ldi r22,lo8(7)
+ 139 004a 00D0      		rcall lcd_set_CGRAMaddr
+  43:facemark.c    ****     lcd_set_char(0b00001010);
+ 141               	.LM16:
+ 142 004c 8AE0      		ldi r24,lo8(10)
+ 143 004e 00D0      		rcall lcd_set_char
+  44:facemark.c    ****     
+  45:facemark.c    ****     // "Д"
+  46:facemark.c    ****     code = 7;
+  47:facemark.c    ****     addr = 0;
+  48:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 145               	.LM17:
+ 146 0050 87E0      		ldi r24,lo8(7)
+ 147 0052 60E0      		ldi r22,lo8(0)
+ 148 0054 00D0      		rcall lcd_set_CGRAMaddr
+  49:facemark.c    ****     lcd_set_char(0x00);
+ 150               	.LM18:
+ 151 0056 80E0      		ldi r24,lo8(0)
+ 152 0058 00D0      		rcall lcd_set_char
+  50:facemark.c    ****     addr = 1;
+  51:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 154               	.LM19:
+ 155 005a 87E0      		ldi r24,lo8(7)
+ 156 005c 61E0      		ldi r22,lo8(1)
+ 157 005e 00D0      		rcall lcd_set_CGRAMaddr
+  52:facemark.c    ****     lcd_set_char(0x00);
+ 159               	.LM20:
+ 160 0060 80E0      		ldi r24,lo8(0)
+ 161 0062 00D0      		rcall lcd_set_char
+  53:facemark.c    ****     addr = 2;
+  54:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 163               	.LM21:
+ 164 0064 87E0      		ldi r24,lo8(7)
+ 165 0066 62E0      		ldi r22,lo8(2)
+ 166 0068 00D0      		rcall lcd_set_CGRAMaddr
+  55:facemark.c    ****     lcd_set_char(0b00011100);
+ 168               	.LM22:
+ 169 006a 8CE1      		ldi r24,lo8(28)
+ 170 006c 00D0      		rcall lcd_set_char
+  56:facemark.c    ****     addr = 3;
+  57:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 172               	.LM23:
+ 173 006e 87E0      		ldi r24,lo8(7)
+ 174 0070 63E0      		ldi r22,lo8(3)
+ 175 0072 00D0      		rcall lcd_set_CGRAMaddr
+  58:facemark.c    ****     lcd_set_char(0b00010100);
+ 177               	.LM24:
+ 178 0074 84E1      		ldi r24,lo8(20)
+ 179 0076 00D0      		rcall lcd_set_char
+  59:facemark.c    ****     addr = 4;
+  60:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 181               	.LM25:
+ 182 0078 87E0      		ldi r24,lo8(7)
+ 183 007a 64E0      		ldi r22,lo8(4)
+ 184 007c 00D0      		rcall lcd_set_CGRAMaddr
+  61:facemark.c    ****     lcd_set_char(0b00010100);
+ 186               	.LM26:
+ 187 007e 84E1      		ldi r24,lo8(20)
+ 188 0080 00D0      		rcall lcd_set_char
+  62:facemark.c    ****     addr = 5;
+  63:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 190               	.LM27:
+ 191 0082 87E0      		ldi r24,lo8(7)
+ 192 0084 65E0      		ldi r22,lo8(5)
+ 193 0086 00D0      		rcall lcd_set_CGRAMaddr
+  64:facemark.c    ****     lcd_set_char(0b00010010);
+ 195               	.LM28:
+ 196 0088 82E1      		ldi r24,lo8(18)
+ 197 008a 00D0      		rcall lcd_set_char
+  65:facemark.c    ****     addr = 6;
+  66:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 199               	.LM29:
+ 200 008c 87E0      		ldi r24,lo8(7)
+ 201 008e 66E0      		ldi r22,lo8(6)
+ 202 0090 00D0      		rcall lcd_set_CGRAMaddr
+  67:facemark.c    ****     lcd_set_char(0b00011111);
+ 204               	.LM30:
+ 205 0092 8FE1      		ldi r24,lo8(31)
+ 206 0094 00D0      		rcall lcd_set_char
+  68:facemark.c    ****     addr = 7;
+  69:facemark.c    ****     lcd_set_CGRAMaddr(code,addr);
+ 208               	.LM31:
+ 209 0096 87E0      		ldi r24,lo8(7)
+ 210 0098 67E0      		ldi r22,lo8(7)
+ 211 009a 00D0      		rcall lcd_set_CGRAMaddr
+  70:facemark.c    ****     lcd_set_char(0b00010001);
+ 213               	.LM32:
+ 214 009c 81E1      		ldi r24,lo8(17)
+ 215 009e 00D0      		rcall lcd_set_char
+ 216               	/* epilogue start */
+  71:facemark.c    ****     
+  72:facemark.c    **** }
+ 218               	.LM33:
+ 219 00a0 0895      		ret
+ 221               	.Lscope1:
+ 223               	.global	shobon
+ 225               	shobon:
+  73:facemark.c    **** 
+  74:facemark.c    **** void shobon(void){
+ 227               	.LM34:
+ 228               	.LFBB2:
+ 229               	/* prologue: function */
+ 230               	/* frame size = 0 */
+ 231               	/* stack size = 0 */
+ 232               	.L__stack_usage = 0
+  75:facemark.c    ****     lcd_set_char('(');
+ 234               	.LM35:
+ 235 00a2 88E2      		ldi r24,lo8(40)
+ 236 00a4 00D0      		rcall lcd_set_char
+  76:facemark.c    ****     lcd_set_char(0x27);
+ 238               	.LM36:
+ 239 00a6 87E2      		ldi r24,lo8(39)
+ 240 00a8 00D0      		rcall lcd_set_char
+  77:facemark.c    ****     lcd_set_char(0xa5);
+ 242               	.LM37:
+ 243 00aa 85EA      		ldi r24,lo8(-91)
+ 244 00ac 00D0      		rcall lcd_set_char
+  78:facemark.c    ****     lcd_set_char(0x06); // "ω"
+ 246               	.LM38:
+ 247 00ae 86E0      		ldi r24,lo8(6)
+ 248 00b0 00D0      		rcall lcd_set_char
+  79:facemark.c    ****     lcd_set_char(0xa5);
+ 250               	.LM39:
+ 251 00b2 85EA      		ldi r24,lo8(-91)
+ 252 00b4 00D0      		rcall lcd_set_char
+  80:facemark.c    ****     lcd_set_char(0x60);
+ 254               	.LM40:
+ 255 00b6 80E6      		ldi r24,lo8(96)
+ 256 00b8 00D0      		rcall lcd_set_char
+  81:facemark.c    ****     lcd_set_char(')');
+ 258               	.LM41:
+ 259 00ba 89E2      		ldi r24,lo8(41)
+ 260 00bc 00D0      		rcall lcd_set_char
+ 261               	/* epilogue start */
+  82:facemark.c    **** }
+ 263               	.LM42:
+ 264 00be 0895      		ret
+ 266               	.Lscope2:
+ 268               	.global	shakin
+ 270               	shakin:
+  83:facemark.c    **** 
+  84:facemark.c    **** void shakin(void){
+ 272               	.LM43:
+ 273               	.LFBB3:
+ 274               	/* prologue: function */
+ 275               	/* frame size = 0 */
+ 276               	/* stack size = 0 */
+ 277               	.L__stack_usage = 0
+  85:facemark.c    ****     lcd_set_char('(');
+ 279               	.LM44:
+ 280 00c0 88E2      		ldi r24,lo8(40)
+ 281 00c2 00D0      		rcall lcd_set_char
+  86:facemark.c    ****     lcd_set_char(0x60);
+ 283               	.LM45:
+ 284 00c4 80E6      		ldi r24,lo8(96)
+ 285 00c6 00D0      		rcall lcd_set_char
+  87:facemark.c    ****     lcd_set_char(0xa5);
+ 287               	.LM46:
+ 288 00c8 85EA      		ldi r24,lo8(-91)
+ 289 00ca 00D0      		rcall lcd_set_char
+  88:facemark.c    ****     lcd_set_char(0x06); // "ω"
+ 291               	.LM47:
+ 292 00cc 86E0      		ldi r24,lo8(6)
+ 293 00ce 00D0      		rcall lcd_set_char
+  89:facemark.c    ****     lcd_set_char(0xa5);
+ 295               	.LM48:
+ 296 00d0 85EA      		ldi r24,lo8(-91)
+ 297 00d2 00D0      		rcall lcd_set_char
+  90:facemark.c    ****     lcd_set_char(0x27);
+ 299               	.LM49:
+ 300 00d4 87E2      		ldi r24,lo8(39)
+ 301 00d6 00D0      		rcall lcd_set_char
+  91:facemark.c    ****     lcd_set_char(')');
+ 303               	.LM50:
+ 304 00d8 89E2      		ldi r24,lo8(41)
+ 305 00da 00D0      		rcall lcd_set_char
+ 306               	/* epilogue start */
+  92:facemark.c    **** }
+ 308               	.LM51:
+ 309 00dc 0895      		ret
+ 311               	.Lscope3:
+ 313               	.global	kuwa
+ 315               	kuwa:
+  93:facemark.c    **** 
+  94:facemark.c    **** void kuwa(void){
+ 317               	.LM52:
+ 318               	.LFBB4:
+ 319               	/* prologue: function */
+ 320               	/* frame size = 0 */
+ 321               	/* stack size = 0 */
+ 322               	.L__stack_usage = 0
+  95:facemark.c    ****     lcd_set_char('(');
+ 324               	.LM53:
+ 325 00de 88E2      		ldi r24,lo8(40)
+ 326 00e0 00D0      		rcall lcd_set_char
+  96:facemark.c    ****     lcd_set_char(0xdf);
+ 328               	.LM54:
+ 329 00e2 8FED      		ldi r24,lo8(-33)
+ 330 00e4 00D0      		rcall lcd_set_char
+  97:facemark.c    ****     lcd_set_char(0x07); // "Д"
+ 332               	.LM55:
+ 333 00e6 87E0      		ldi r24,lo8(7)
+ 334 00e8 00D0      		rcall lcd_set_char
+  98:facemark.c    ****     lcd_set_char(0xdf);
+ 336               	.LM56:
+ 337 00ea 8FED      		ldi r24,lo8(-33)
+ 338 00ec 00D0      		rcall lcd_set_char
+  99:facemark.c    ****     lcd_set_char(')');
+ 340               	.LM57:
+ 341 00ee 89E2      		ldi r24,lo8(41)
+ 342 00f0 00D0      		rcall lcd_set_char
+ 343               	/* epilogue start */
+ 100:facemark.c    **** }
+ 345               	.LM58:
+ 346 00f2 0895      		ret
+ 348               	.Lscope4:
+ 350               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 facemark.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:64     .text:00000000 FaceMark_init
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:225    .text:000000a2 shobon
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:270    .text:000000c0 shakin
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccGb3Arn.s:315    .text:000000de kuwa
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+lcd_set_CGRAMaddr
+lcd_set_char

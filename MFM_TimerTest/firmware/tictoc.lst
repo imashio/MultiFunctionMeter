@@ -1,0 +1,205 @@
+   1               		.file	"tictoc.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 107               	.global	tictoc_init
+ 109               	tictoc_init:
+   1:tictoc.c      **** //
+   2:tictoc.c      **** //  tictoc.c
+   3:tictoc.c      **** //  MFM_rev4
+   4:tictoc.c      **** //
+   5:tictoc.c      **** //  Created by imashio on 11/15/14.
+   6:tictoc.c      **** //
+   7:tictoc.c      **** //
+   8:tictoc.c      **** 
+   9:tictoc.c      **** #include <avr/io.h>
+  10:tictoc.c      **** #include <util/delay.h>
+  11:tictoc.c      **** #include "tictoc.h"
+  12:tictoc.c      **** 
+  13:tictoc.c      **** // This function uses TCNT1
+  14:tictoc.c      **** // Must enable 16-bit timer
+  15:tictoc.c      **** 
+  16:tictoc.c      **** double              unit_time_us;
+  17:tictoc.c      **** unsigned long int   start_cnt;
+  18:tictoc.c      **** unsigned long int   end_cnt;
+  19:tictoc.c      **** 
+  20:tictoc.c      **** void tictoc_init(unsigned int fosc_MHz, unsigned int Ndiv){
+ 111               	.LM0:
+ 112               	.LFBB1:
+ 113 0000 CF92      		push r12
+ 114 0002 DF92      		push r13
+ 115 0004 EF92      		push r14
+ 116 0006 FF92      		push r15
+ 117 0008 CF93      		push r28
+ 118 000a DF93      		push r29
+ 119               	/* prologue: function */
+ 120               	/* frame size = 0 */
+ 121               	/* stack size = 6 */
+ 122               	.L__stack_usage = 6
+ 123 000c EC01      		movw r28,r24
+  21:tictoc.c      ****     
+  22:tictoc.c      ****     unit_time_us = Ndiv / ( 1.0*fosc_MHz );
+ 125               	.LM1:
+ 126 000e 80E0      		ldi r24,lo8(0)
+ 127 0010 90E0      		ldi r25,hi8(0)
+ 128 0012 00D0      		rcall __floatunsisf
+ 129 0014 6B01      		movw r12,r22
+ 130 0016 7C01      		movw r14,r24
+ 131 0018 BE01      		movw r22,r28
+ 132 001a 80E0      		ldi r24,lo8(0)
+ 133 001c 90E0      		ldi r25,hi8(0)
+ 134 001e 00D0      		rcall __floatunsisf
+ 135 0020 9B01      		movw r18,r22
+ 136 0022 AC01      		movw r20,r24
+ 137 0024 C701      		movw r24,r14
+ 138 0026 B601      		movw r22,r12
+ 139 0028 00D0      		rcall __divsf3
+ 140 002a DC01      		movw r26,r24
+ 141 002c CB01      		movw r24,r22
+ 142 002e 8093 0000 		sts unit_time_us,r24
+ 143 0032 9093 0000 		sts unit_time_us+1,r25
+ 144 0036 A093 0000 		sts unit_time_us+2,r26
+ 145 003a B093 0000 		sts unit_time_us+3,r27
+ 146               	/* epilogue start */
+  23:tictoc.c      ****     
+  24:tictoc.c      **** }
+ 148               	.LM2:
+ 149 003e DF91      		pop r29
+ 150 0040 CF91      		pop r28
+ 151 0042 FF90      		pop r15
+ 152 0044 EF90      		pop r14
+ 153 0046 DF90      		pop r13
+ 154 0048 CF90      		pop r12
+ 155 004a 0895      		ret
+ 157               	.Lscope1:
+ 159               	.global	tic
+ 161               	tic:
+  25:tictoc.c      **** 
+  26:tictoc.c      **** void tic(){
+ 163               	.LM3:
+ 164               	.LFBB2:
+ 165               	/* prologue: function */
+ 166               	/* frame size = 0 */
+ 167               	/* stack size = 0 */
+ 168               	.L__stack_usage = 0
+  27:tictoc.c      ****     
+  28:tictoc.c      ****     start_cnt = TCNT1;
+ 170               	.LM4:
+ 171 004c 8091 8400 		lds r24,132
+ 172 0050 9091 8500 		lds r25,132+1
+ 173 0054 A0E0      		ldi r26,lo8(0)
+ 174 0056 B0E0      		ldi r27,hi8(0)
+ 175 0058 8093 0000 		sts start_cnt,r24
+ 176 005c 9093 0000 		sts start_cnt+1,r25
+ 177 0060 A093 0000 		sts start_cnt+2,r26
+ 178 0064 B093 0000 		sts start_cnt+3,r27
+ 179               	/* epilogue start */
+  29:tictoc.c      ****     
+  30:tictoc.c      **** }
+ 181               	.LM5:
+ 182 0068 0895      		ret
+ 184               	.Lscope2:
+ 186               	.global	toc
+ 188               	toc:
+  31:tictoc.c      **** 
+  32:tictoc.c      **** unsigned long int toc(){
+ 190               	.LM6:
+ 191               	.LFBB3:
+ 192 006a 0F93      		push r16
+ 193 006c 1F93      		push r17
+ 194               	/* prologue: function */
+ 195               	/* frame size = 0 */
+ 196               	/* stack size = 2 */
+ 197               	.L__stack_usage = 2
+  33:tictoc.c      ****     
+  34:tictoc.c      ****     unsigned long int time_us;
+  35:tictoc.c      ****     
+  36:tictoc.c      ****     end_cnt = TCNT1;
+ 199               	.LM7:
+ 200 006e 8091 8400 		lds r24,132
+ 201 0072 9091 8500 		lds r25,132+1
+ 202 0076 A0E0      		ldi r26,lo8(0)
+ 203 0078 B0E0      		ldi r27,hi8(0)
+ 204 007a 8093 0000 		sts end_cnt,r24
+ 205 007e 9093 0000 		sts end_cnt+1,r25
+ 206 0082 A093 0000 		sts end_cnt+2,r26
+ 207 0086 B093 0000 		sts end_cnt+3,r27
+  37:tictoc.c      ****     if( start_cnt < end_cnt ){
+ 209               	.LM8:
+ 210 008a 0091 0000 		lds r16,start_cnt
+ 211 008e 1091 0000 		lds r17,start_cnt+1
+ 212 0092 2091 0000 		lds r18,start_cnt+2
+ 213 0096 3091 0000 		lds r19,start_cnt+3
+ 214 009a AC01      		movw r20,r24
+ 215 009c BD01      		movw r22,r26
+ 216 009e 401B      		sub r20,r16
+ 217 00a0 510B      		sbc r21,r17
+ 218 00a2 620B      		sbc r22,r18
+ 219 00a4 730B      		sbc r23,r19
+ 220 00a6 0817      		cp r16,r24
+ 221 00a8 1907      		cpc r17,r25
+ 222 00aa 2A07      		cpc r18,r26
+ 223 00ac 3B07      		cpc r19,r27
+ 224 00ae 00F4      		brsh .L4
+  38:tictoc.c      ****         time_us = ( ( 0x10000 + end_cnt ) - start_cnt ) * unit_time_us;
+ 226               	.LM9:
+ 227 00b0 4050      		subi r20,lo8(-(65536))
+ 228 00b2 5040      		sbci r21,hi8(-(65536))
+ 229 00b4 6F4F      		sbci r22,hlo8(-(65536))
+ 230 00b6 7F4F      		sbci r23,hhi8(-(65536))
+ 231               	.L4:
+  39:tictoc.c      ****     }else{
+  40:tictoc.c      ****         time_us = ( end_cnt - start_cnt ) * unit_time_us;
+ 233               	.LM10:
+ 234 00b8 CB01      		movw r24,r22
+ 235 00ba BA01      		movw r22,r20
+ 236 00bc 00D0      		rcall __floatunsisf
+ 237 00be 2091 0000 		lds r18,unit_time_us
+ 238 00c2 3091 0000 		lds r19,unit_time_us+1
+ 239 00c6 4091 0000 		lds r20,unit_time_us+2
+ 240 00ca 5091 0000 		lds r21,unit_time_us+3
+ 241 00ce 00D0      		rcall __mulsf3
+ 242 00d0 00D0      		rcall __fixunssfsi
+ 243               	/* epilogue start */
+  41:tictoc.c      ****     }
+  42:tictoc.c      ****     return time_us;
+  43:tictoc.c      ****     
+  44:tictoc.c      **** }
+ 245               	.LM11:
+ 246 00d2 1F91      		pop r17
+ 247 00d4 0F91      		pop r16
+ 248 00d6 0895      		ret
+ 250               	.Lscope3:
+ 251               		.comm end_cnt,4,1
+ 252               		.comm start_cnt,4,1
+ 253               		.comm unit_time_us,4,1
+ 258               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 tictoc.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:109    .text:00000000 tictoc_init
+                            *COM*:00000004 unit_time_us
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:161    .text:0000004c tic
+                            *COM*:00000004 start_cnt
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc8vscGI.s:188    .text:0000006a toc
+                            *COM*:00000004 end_cnt
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+__floatunsisf
+__divsf3
+__mulsf3
+__fixunssfsi

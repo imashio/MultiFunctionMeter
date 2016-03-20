@@ -1,0 +1,97 @@
+   1               		.file	"ExtInterrupt.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	ExtInterrupt_init
+ 107               	ExtInterrupt_init:
+   1:ExtInterrupt.c **** /*
+   2:ExtInterrupt.c ****  *  ExtInterrupt.c
+   3:ExtInterrupt.c ****  *  DefiLinkTap_rev2b
+   4:ExtInterrupt.c ****  *
+   5:ExtInterrupt.c ****  *  Created by Ryuta on 10/11/28.
+   6:ExtInterrupt.c ****  *  Copyright 2010 __MyCompanyName__. All rights reserved.
+   7:ExtInterrupt.c ****  *
+   8:ExtInterrupt.c ****  */
+   9:ExtInterrupt.c **** 
+  10:ExtInterrupt.c **** #include <avr/io.h>
+  11:ExtInterrupt.c **** #include <util/delay.h>
+  12:ExtInterrupt.c **** #include <avr/interrupt.h>
+  13:ExtInterrupt.c **** #include "ExtInterrupt.h"
+  14:ExtInterrupt.c **** 
+  15:ExtInterrupt.c **** void ExtInterrupt_init(void) {
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111               	/* prologue: function */
+ 112               	/* frame size = 0 */
+ 113               	/* stack size = 0 */
+ 114               	.L__stack_usage = 0
+  16:ExtInterrupt.c **** 
+  17:ExtInterrupt.c ****    // INT0, INT1 Pin change interrupt enable
+  18:ExtInterrupt.c **** 	EIMSK = 0b00000001;
+ 116               	.LM1:
+ 117 0000 81E0      		ldi r24,lo8(1)
+ 118 0002 8DBB      		out 61-32,r24
+  19:ExtInterrupt.c **** 	// bit 7-2 : not valid ,  bit 1 : INT1 ,  bit 0 : INT0 
+  20:ExtInterrupt.c **** 	
+  21:ExtInterrupt.c ****    // INT0, INT1 Pin change interrupt mode setting
+  22:ExtInterrupt.c **** 	EICRA = 0b00000011;
+ 120               	.LM2:
+ 121 0004 83E0      		ldi r24,lo8(3)
+ 122 0006 8093 6900 		sts 105,r24
+  23:ExtInterrupt.c **** 	// bit 7-4 : not valid ,  bit 3-2 : INT1 ,  bit 1-0 : INT0 
+  24:ExtInterrupt.c **** 	//		00 ... Low
+  25:ExtInterrupt.c **** 	//		01 ... Logic changing
+  26:ExtInterrupt.c **** 	//		10 ... Negative edge
+  27:ExtInterrupt.c **** 	//		11 ... Positive edge
+  28:ExtInterrupt.c **** 
+  29:ExtInterrupt.c **** 
+  30:ExtInterrupt.c **** 	// Pin group mask
+  31:ExtInterrupt.c **** 	PCICR = 0b00000000;
+ 124               	.LM3:
+ 125 000a 1092 6800 		sts 104,__zero_reg__
+  32:ExtInterrupt.c **** 	// bit 0 : PCINT  0 -  7
+  33:ExtInterrupt.c **** 	// bit 1 : PCINT  8 - 14
+  34:ExtInterrupt.c **** 	// bit 2 : PCINT 16 - 23
+  35:ExtInterrupt.c **** 
+  36:ExtInterrupt.c **** 	// Pin mask
+  37:ExtInterrupt.c **** 	// PCMSK2 is valid, when bit 2 of PCICR is setted 
+  38:ExtInterrupt.c **** 	// PCINT23, PCINT22, PCINT21, PCINT20, PCINT19, PCINT18, PCINT17, PCINT16
+  39:ExtInterrupt.c **** 	PCMSK2 = 0b00000000;
+ 127               	.LM4:
+ 128 000e 1092 6D00 		sts 109,__zero_reg__
+  40:ExtInterrupt.c **** 	// PCMSK1 is valid, when bit 1 of PCICR is setted 
+  41:ExtInterrupt.c **** 	//  ----- , PCINT14, PCINT13, PCINT12, PCINT11, PCINT10,  PCINT9,  PCINT8
+  42:ExtInterrupt.c **** 	PCMSK1 = 0b00000000;
+ 130               	.LM5:
+ 131 0012 1092 6C00 		sts 108,__zero_reg__
+  43:ExtInterrupt.c **** 	// PCMSK0 is valid, when bit 0 of PCICR is setted 
+  44:ExtInterrupt.c **** 	//  PCINT7,  PCINT6,  PCINT5,  PCINT4,  PCINT3,  PCINT2,  PCINT1,  PCINT0
+  45:ExtInterrupt.c **** 	PCMSK0 = 0b00000000;
+ 133               	.LM6:
+ 134 0016 1092 6B00 		sts 107,__zero_reg__
+ 135               	/* epilogue start */
+  46:ExtInterrupt.c **** }...
+ 137               	.LM7:
+ 138 001a 0895      		ret
+ 140               	.Lscope1:
+ 142               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 ExtInterrupt.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccoOVpCQ.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccoOVpCQ.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccoOVpCQ.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccoOVpCQ.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccoOVpCQ.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccoOVpCQ.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccoOVpCQ.s:107    .text:00000000 ExtInterrupt_init
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss

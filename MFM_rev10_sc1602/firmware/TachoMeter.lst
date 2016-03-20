@@ -1,0 +1,512 @@
+   1               		.file	"TachoMeter.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	__vector_1
+ 107               	__vector_1:
+   1:TachoMeter.c  **** //
+   2:TachoMeter.c  **** //  TachoMeter.c
+   3:TachoMeter.c  **** //  MFM_rev5
+   4:TachoMeter.c  **** //
+   5:TachoMeter.c  **** //  Created by imashio on 11/17/14.
+   6:TachoMeter.c  **** //
+   7:TachoMeter.c  **** //
+   8:TachoMeter.c  **** 
+   9:TachoMeter.c  **** #include <avr/io.h>
+  10:TachoMeter.c  **** #include <avr/interrupt.h>
+  11:TachoMeter.c  **** #include <util/delay.h>
+  12:TachoMeter.c  **** 
+  13:TachoMeter.c  **** #include "TachoMeter.h"
+  14:TachoMeter.c  **** 
+  15:TachoMeter.c  **** // Tacho Meter Parameter
+  16:TachoMeter.c  **** // Number of pulse, Npulse [pulse/rpm]
+  17:TachoMeter.c  **** #define Npulse          2
+  18:TachoMeter.c  **** // Median Filter Length for Tacho Meter, must be same Nmed in "TachoMeter.h"
+  19:TachoMeter.c  **** #define Nmed            1
+  20:TachoMeter.c  **** // Tracking Range
+  21:TachoMeter.c  **** #define RPM_DIFF        3000
+  22:TachoMeter.c  **** // Maximum RPM
+  23:TachoMeter.c  **** #define RPM_MAX         10000
+  24:TachoMeter.c  **** // Count Number Lower Limit (Ignore count less than 'TCNT_LIM')
+  25:TachoMeter.c  **** #define TCNT_LIM        100 // comment 小さくするとおかしい。回転数表示が小さく
+  26:TachoMeter.c  **** // Merging CNT
+  27:TachoMeter.c  **** #define NOISE_CNT       0
+  28:TachoMeter.c  **** 
+  29:TachoMeter.c  **** unsigned long int   FOSC;
+  30:TachoMeter.c  **** unsigned long int   Ndiv;
+  31:TachoMeter.c  **** 
+  32:TachoMeter.c  **** 
+  33:TachoMeter.c  **** double              freq;
+  34:TachoMeter.c  **** double              freq_cur;
+  35:TachoMeter.c  **** unsigned long int   rpm;
+  36:TachoMeter.c  **** unsigned long int   meas_array[Nmed];
+  37:TachoMeter.c  **** unsigned long int   proc_array[Nmed];
+  38:TachoMeter.c  **** unsigned int        tacho_n = 0;
+  39:TachoMeter.c  **** unsigned long int   cnt;
+  40:TachoMeter.c  **** 
+  41:TachoMeter.c  **** // for debug
+  42:TachoMeter.c  **** unsigned long int   cnt_min;
+  43:TachoMeter.c  **** unsigned long int   cnt_max;
+  44:TachoMeter.c  **** 
+  45:TachoMeter.c  **** ISR(INT0_vect){
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111 0000 1F92      		push r1
+ 112 0002 0F92      		push r0
+ 113 0004 0FB6      		in r0,__SREG__
+ 114 0006 0F92      		push r0
+ 115 0008 1124      		clr __zero_reg__
+ 116 000a 4F93      		push r20
+ 117 000c 5F93      		push r21
+ 118 000e 6F93      		push r22
+ 119 0010 7F93      		push r23
+ 120 0012 8F93      		push r24
+ 121 0014 9F93      		push r25
+ 122 0016 EF93      		push r30
+ 123 0018 FF93      		push r31
+ 124               	/* prologue: Signal */
+ 125               	/* frame size = 0 */
+ 126               	/* stack size = 11 */
+ 127               	.L__stack_usage = 11
+  46:TachoMeter.c  ****     if( TCNT1 > TCNT_LIM ){
+ 129               	.LM1:
+ 130 001a 8091 8400 		lds r24,132
+ 131 001e 9091 8500 		lds r25,132+1
+ 132 0022 8536      		cpi r24,101
+ 133 0024 9105      		cpc r25,__zero_reg__
+ 134 0026 00F0      		brlo .L1
+  47:TachoMeter.c  ****         meas_array[tacho_n] = TCNT1;
+ 136               	.LM2:
+ 137 0028 8091 0000 		lds r24,tacho_n
+ 138 002c 9091 0000 		lds r25,tacho_n+1
+ 139 0030 4091 8400 		lds r20,132
+ 140 0034 5091 8500 		lds r21,132+1
+ 141 0038 FC01      		movw r30,r24
+ 142 003a EE0F      		lsl r30
+ 143 003c FF1F      		rol r31
+ 144 003e EE0F      		lsl r30
+ 145 0040 FF1F      		rol r31
+ 146 0042 E050      		subi r30,lo8(-(meas_array))
+ 147 0044 F040      		sbci r31,hi8(-(meas_array))
+ 148 0046 60E0      		ldi r22,lo8(0)
+ 149 0048 70E0      		ldi r23,hi8(0)
+ 150 004a 4083      		st Z,r20
+ 151 004c 5183      		std Z+1,r21
+ 152 004e 6283      		std Z+2,r22
+ 153 0050 7383      		std Z+3,r23
+  48:TachoMeter.c  ****         if( tacho_n == Nmed-1 ) tacho_n=0;
+ 155               	.LM3:
+ 156 0052 0097      		sbiw r24,0
+ 157 0054 01F4      		brne .L3
+ 159               	.LM4:
+ 160 0056 1092 0000 		sts tacho_n+1,__zero_reg__
+ 161 005a 1092 0000 		sts tacho_n,__zero_reg__
+ 162 005e 00C0      		rjmp .L4
+ 163               	.L3:
+  49:TachoMeter.c  ****         else                    tacho_n++;
+ 165               	.LM5:
+ 166 0060 0196      		adiw r24,1
+ 167 0062 9093 0000 		sts tacho_n+1,r25
+ 168 0066 8093 0000 		sts tacho_n,r24
+ 169               	.L4:
+  50:TachoMeter.c  ****         TCNT1 = 0;
+ 171               	.LM6:
+ 172 006a 1092 8500 		sts 132+1,__zero_reg__
+ 173 006e 1092 8400 		sts 132,__zero_reg__
+ 174               	.L1:
+ 175               	/* epilogue start */
+  51:TachoMeter.c  ****     }
+  52:TachoMeter.c  **** }
+ 177               	.LM7:
+ 178 0072 FF91      		pop r31
+ 179 0074 EF91      		pop r30
+ 180 0076 9F91      		pop r25
+ 181 0078 8F91      		pop r24
+ 182 007a 7F91      		pop r23
+ 183 007c 6F91      		pop r22
+ 184 007e 5F91      		pop r21
+ 185 0080 4F91      		pop r20
+ 186 0082 0F90      		pop r0
+ 187 0084 0FBE      		out __SREG__,r0
+ 188 0086 0F90      		pop r0
+ 189 0088 1F90      		pop r1
+ 190 008a 1895      		reti
+ 192               	.Lscope1:
+ 194               	.global	__vector_13
+ 196               	__vector_13:
+  53:TachoMeter.c  **** 
+  54:TachoMeter.c  **** // 16-bit Timer overflow
+  55:TachoMeter.c  **** ISR(TIMER1_OVF_vect){
+ 198               	.LM8:
+ 199               	.LFBB2:
+ 200 008c 1F92      		push r1
+ 201 008e 0F92      		push r0
+ 202 0090 0FB6      		in r0,__SREG__
+ 203 0092 0F92      		push r0
+ 204 0094 1124      		clr __zero_reg__
+ 205 0096 4F93      		push r20
+ 206 0098 5F93      		push r21
+ 207 009a 6F93      		push r22
+ 208 009c 7F93      		push r23
+ 209 009e 8F93      		push r24
+ 210 00a0 9F93      		push r25
+ 211 00a2 EF93      		push r30
+ 212 00a4 FF93      		push r31
+ 213               	/* prologue: Signal */
+ 214               	/* frame size = 0 */
+ 215               	/* stack size = 11 */
+ 216               	.L__stack_usage = 11
+  56:TachoMeter.c  ****     meas_array[tacho_n] = 0xffffffff;
+ 218               	.LM9:
+ 219 00a6 8091 0000 		lds r24,tacho_n
+ 220 00aa 9091 0000 		lds r25,tacho_n+1
+ 221 00ae FC01      		movw r30,r24
+ 222 00b0 EE0F      		lsl r30
+ 223 00b2 FF1F      		rol r31
+ 224 00b4 EE0F      		lsl r30
+ 225 00b6 FF1F      		rol r31
+ 226 00b8 E050      		subi r30,lo8(-(meas_array))
+ 227 00ba F040      		sbci r31,hi8(-(meas_array))
+ 228 00bc 4FEF      		ldi r20,lo8(-1)
+ 229 00be 5FEF      		ldi r21,hi8(-1)
+ 230 00c0 BA01      		movw r22,r20
+ 231 00c2 4083      		st Z,r20
+ 232 00c4 5183      		std Z+1,r21
+ 233 00c6 6283      		std Z+2,r22
+ 234 00c8 7383      		std Z+3,r23
+  57:TachoMeter.c  ****     if( tacho_n == Nmed-1 ) tacho_n=0;
+ 236               	.LM10:
+ 237 00ca 0097      		sbiw r24,0
+ 238 00cc 01F4      		brne .L6
+ 240               	.LM11:
+ 241 00ce 1092 0000 		sts tacho_n+1,__zero_reg__
+ 242 00d2 1092 0000 		sts tacho_n,__zero_reg__
+ 243 00d6 00C0      		rjmp .L7
+ 244               	.L6:
+  58:TachoMeter.c  ****     else                    tacho_n++;
+ 246               	.LM12:
+ 247 00d8 0196      		adiw r24,1
+ 248 00da 9093 0000 		sts tacho_n+1,r25
+ 249 00de 8093 0000 		sts tacho_n,r24
+ 250               	.L7:
+  59:TachoMeter.c  ****     TCNT1 = 0;
+ 252               	.LM13:
+ 253 00e2 1092 8500 		sts 132+1,__zero_reg__
+ 254 00e6 1092 8400 		sts 132,__zero_reg__
+ 255               	/* epilogue start */
+  60:TachoMeter.c  **** }
+ 257               	.LM14:
+ 258 00ea FF91      		pop r31
+ 259 00ec EF91      		pop r30
+ 260 00ee 9F91      		pop r25
+ 261 00f0 8F91      		pop r24
+ 262 00f2 7F91      		pop r23
+ 263 00f4 6F91      		pop r22
+ 264 00f6 5F91      		pop r21
+ 265 00f8 4F91      		pop r20
+ 266 00fa 0F90      		pop r0
+ 267 00fc 0FBE      		out __SREG__,r0
+ 268 00fe 0F90      		pop r0
+ 269 0100 1F90      		pop r1
+ 270 0102 1895      		reti
+ 272               	.Lscope2:
+ 274               	.global	BubbleSort
+ 276               	BubbleSort:
+  61:TachoMeter.c  **** 
+  62:TachoMeter.c  **** 
+  63:TachoMeter.c  **** // Bubble Sort (min->max)
+  64:TachoMeter.c  **** void BubbleSort(void){
+ 278               	.LM15:
+ 279               	.LFBB3:
+ 280               	/* prologue: function */
+ 281               	/* frame size = 0 */
+ 282               	/* stack size = 0 */
+ 283               	.L__stack_usage = 0
+  65:TachoMeter.c  ****     unsigned int tmp;
+  66:TachoMeter.c  ****     unsigned int min;
+  67:TachoMeter.c  ****     unsigned int min_index = 0;
+  68:TachoMeter.c  ****     unsigned int n,m;
+  69:TachoMeter.c  ****     
+  70:TachoMeter.c  ****     for(m=0;m<Nmed;m++){
+  71:TachoMeter.c  ****         min = 0xffffffff;
+  72:TachoMeter.c  ****         for(n=m;n<Nmed;n++){
+  73:TachoMeter.c  ****             if( proc_array[n] < min ){
+  74:TachoMeter.c  ****                 min = proc_array[n];
+  75:TachoMeter.c  ****                 min_index = n;
+  76:TachoMeter.c  ****             }
+  77:TachoMeter.c  ****         }
+  78:TachoMeter.c  ****         tmp                     = proc_array[m];
+  79:TachoMeter.c  ****         proc_array[m]           = proc_array[min_index];
+  80:TachoMeter.c  ****         proc_array[min_index]   = tmp;
+ 285               	.LM16:
+ 286 0104 8091 0000 		lds r24,proc_array
+ 287 0108 9091 0000 		lds r25,proc_array+1
+ 288 010c A0E0      		ldi r26,lo8(0)
+ 289 010e B0E0      		ldi r27,hi8(0)
+ 290 0110 8093 0000 		sts proc_array,r24
+ 291 0114 9093 0000 		sts proc_array+1,r25
+ 292 0118 A093 0000 		sts proc_array+2,r26
+ 293 011c B093 0000 		sts proc_array+3,r27
+ 294               	/* epilogue start */
+  81:TachoMeter.c  ****     }
+  82:TachoMeter.c  **** }
+ 296               	.LM17:
+ 297 0120 0895      		ret
+ 299               	.Lscope3:
+ 303               	.global	TachoMeter_init
+ 305               	TachoMeter_init:
+  83:TachoMeter.c  **** 
+  84:TachoMeter.c  **** 
+  85:TachoMeter.c  **** void TachoMeter_init(unsigned long int FOSC_in,unsigned long int Ndiv_in){
+ 307               	.LM18:
+ 308               	.LFBB4:
+ 309               	/* prologue: function */
+ 310               	/* frame size = 0 */
+ 311               	/* stack size = 0 */
+ 312               	.L__stack_usage = 0
+ 313 0122 DC01      		movw r26,r24
+ 314 0124 CB01      		movw r24,r22
+  86:TachoMeter.c  ****     
+  87:TachoMeter.c  ****     FOSC = FOSC_in;
+ 316               	.LM19:
+ 317 0126 8093 0000 		sts FOSC,r24
+ 318 012a 9093 0000 		sts FOSC+1,r25
+ 319 012e A093 0000 		sts FOSC+2,r26
+ 320 0132 B093 0000 		sts FOSC+3,r27
+  88:TachoMeter.c  ****     Ndiv = Ndiv_in;
+ 322               	.LM20:
+ 323 0136 2093 0000 		sts Ndiv,r18
+ 324 013a 3093 0000 		sts Ndiv+1,r19
+ 325 013e 4093 0000 		sts Ndiv+2,r20
+ 326 0142 5093 0000 		sts Ndiv+3,r21
+ 327               	/* epilogue start */
+  89:TachoMeter.c  ****     
+  90:TachoMeter.c  **** }
+ 329               	.LM21:
+ 330 0146 0895      		ret
+ 332               	.Lscope4:
+ 334               	.global	TachoMeter
+ 336               	TachoMeter:
+  91:TachoMeter.c  **** 
+  92:TachoMeter.c  **** 
+  93:TachoMeter.c  **** unsigned long int TachoMeter(void){
+ 338               	.LM22:
+ 339               	.LFBB5:
+ 340 0148 CF92      		push r12
+ 341 014a DF92      		push r13
+ 342 014c EF92      		push r14
+ 343 014e FF92      		push r15
+ 344               	/* prologue: function */
+ 345               	/* frame size = 0 */
+ 346               	/* stack size = 4 */
+ 347               	.L__stack_usage = 4
+  94:TachoMeter.c  ****     
+  95:TachoMeter.c  ****     unsigned int n;
+  96:TachoMeter.c  ****     
+  97:TachoMeter.c  ****     // Tacho Meter
+  98:TachoMeter.c  ****     //Median Filter
+  99:TachoMeter.c  ****     for(n=0;n<Nmed;n++){
+ 100:TachoMeter.c  ****         proc_array[n] = meas_array[n];
+ 349               	.LM23:
+ 350 0150 8091 0000 		lds r24,meas_array
+ 351 0154 9091 0000 		lds r25,meas_array+1
+ 352 0158 A091 0000 		lds r26,meas_array+2
+ 353 015c B091 0000 		lds r27,meas_array+3
+ 354 0160 8093 0000 		sts proc_array,r24
+ 355 0164 9093 0000 		sts proc_array+1,r25
+ 356 0168 A093 0000 		sts proc_array+2,r26
+ 357 016c B093 0000 		sts proc_array+3,r27
+ 101:TachoMeter.c  ****     }
+ 102:TachoMeter.c  **** //    BubbleSort();
+ 103:TachoMeter.c  ****     
+ 104:TachoMeter.c  ****     // Calculate frequency
+ 105:TachoMeter.c  ****     if(meas_array[tacho_n] >= 0xffff){          // Too Long Gap Pulse
+ 359               	.LM24:
+ 360 0170 E091 0000 		lds r30,tacho_n
+ 361 0174 F091 0000 		lds r31,tacho_n+1
+ 362 0178 EE0F      		lsl r30
+ 363 017a FF1F      		rol r31
+ 364 017c EE0F      		lsl r30
+ 365 017e FF1F      		rol r31
+ 366 0180 E050      		subi r30,lo8(-(meas_array))
+ 367 0182 F040      		sbci r31,hi8(-(meas_array))
+ 368 0184 C080      		ld r12,Z
+ 369 0186 D180      		ldd r13,Z+1
+ 370 0188 E280      		ldd r14,Z+2
+ 371 018a F380      		ldd r15,Z+3
+ 372 018c 8FEF      		ldi r24,lo8(65535)
+ 373 018e C816      		cp r12,r24
+ 374 0190 8FEF      		ldi r24,hi8(65535)
+ 375 0192 D806      		cpc r13,r24
+ 376 0194 80E0      		ldi r24,hlo8(65535)
+ 377 0196 E806      		cpc r14,r24
+ 378 0198 80E0      		ldi r24,hhi8(65535)
+ 379 019a F806      		cpc r15,r24
+ 380 019c 00F0      		brlo .L11
+ 106:TachoMeter.c  ****         freq = 0;
+ 382               	.LM25:
+ 383 019e 80E0      		ldi r24,lo8(0x0)
+ 384 01a0 90E0      		ldi r25,hi8(0x0)
+ 385 01a2 DC01      		movw r26,r24
+ 386 01a4 00C0      		rjmp .L16
+ 387               	.L11:
+ 107:TachoMeter.c  ****     }else{                                      // Last Pulse
+ 108:TachoMeter.c  ****         freq = FOSC / Ndiv / meas_array[tacho_n];
+ 389               	.LM26:
+ 390 01a6 6091 0000 		lds r22,FOSC
+ 391 01aa 7091 0000 		lds r23,FOSC+1
+ 392 01ae 8091 0000 		lds r24,FOSC+2
+ 393 01b2 9091 0000 		lds r25,FOSC+3
+ 394 01b6 2091 0000 		lds r18,Ndiv
+ 395 01ba 3091 0000 		lds r19,Ndiv+1
+ 396 01be 4091 0000 		lds r20,Ndiv+2
+ 397 01c2 5091 0000 		lds r21,Ndiv+3
+ 398 01c6 0E94 0000 		call __udivmodsi4
+ 399 01ca CA01      		movw r24,r20
+ 400 01cc B901      		movw r22,r18
+ 401 01ce A701      		movw r20,r14
+ 402 01d0 9601      		movw r18,r12
+ 403 01d2 0E94 0000 		call __udivmodsi4
+ 404 01d6 CA01      		movw r24,r20
+ 405 01d8 B901      		movw r22,r18
+ 406 01da 0E94 0000 		call __floatunsisf
+ 407 01de DC01      		movw r26,r24
+ 408 01e0 CB01      		movw r24,r22
+ 409               	.L16:
+ 410 01e2 8093 0000 		sts freq,r24
+ 411 01e6 9093 0000 		sts freq+1,r25
+ 412 01ea A093 0000 		sts freq+2,r26
+ 413 01ee B093 0000 		sts freq+3,r27
+ 109:TachoMeter.c  ****     }
+ 110:TachoMeter.c  ****     
+ 111:TachoMeter.c  ****     // Decide measured frequency is valid or invalid
+ 112:TachoMeter.c  ****     
+ 113:TachoMeter.c  ****     if( ( freq - freq_cur ) < RPM_DIFF/60.0 ){  // Tracking
+ 415               	.LM27:
+ 416 01f2 C090 0000 		lds r12,freq
+ 417 01f6 D090 0000 		lds r13,freq+1
+ 418 01fa E090 0000 		lds r14,freq+2
+ 419 01fe F090 0000 		lds r15,freq+3
+ 420 0202 C701      		movw r24,r14
+ 421 0204 B601      		movw r22,r12
+ 422 0206 2091 0000 		lds r18,freq_cur
+ 423 020a 3091 0000 		lds r19,freq_cur+1
+ 424 020e 4091 0000 		lds r20,freq_cur+2
+ 425 0212 5091 0000 		lds r21,freq_cur+3
+ 426 0216 0E94 0000 		call __subsf3
+ 427 021a 20E0      		ldi r18,lo8(0x42480000)
+ 428 021c 30E0      		ldi r19,hi8(0x42480000)
+ 429 021e 48E4      		ldi r20,hlo8(0x42480000)
+ 430 0220 52E4      		ldi r21,hhi8(0x42480000)
+ 431 0222 0E94 0000 		call __ltsf2
+ 432 0226 87FF      		sbrs r24,7
+ 433 0228 00C0      		rjmp .L13
+ 114:TachoMeter.c  ****         freq_cur = freq;
+ 435               	.LM28:
+ 436 022a C092 0000 		sts freq_cur,r12
+ 437 022e D092 0000 		sts freq_cur+1,r13
+ 438 0232 E092 0000 		sts freq_cur+2,r14
+ 439 0236 F092 0000 		sts freq_cur+3,r15
+ 440               	.L13:
+ 115:TachoMeter.c  ****     }
+ 116:TachoMeter.c  ****     /*
+ 117:TachoMeter.c  ****      else{                                      // Force Track
+ 118:TachoMeter.c  ****         cnt_min = proc_array[0];
+ 119:TachoMeter.c  ****         cnt_max = proc_array[Nmed-1];
+ 120:TachoMeter.c  ****         cnt = proc_array[Nmed>>1]; // 最新カウント値をセット
+ 121:TachoMeter.c  ****         freq_cur = (float)(FOSC / Ndiv) / (float)cnt;
+ 122:TachoMeter.c  ****     }
+ 123:TachoMeter.c  ****     */
+ 124:TachoMeter.c  ****     
+ 125:TachoMeter.c  ****     // Calcurate RPM
+ 126:TachoMeter.c  ****     rpm = (unsigned long int)( 60.0 * freq_cur / (float)Npulse );
+ 442               	.LM29:
+ 443 023a 6091 0000 		lds r22,freq_cur
+ 444 023e 7091 0000 		lds r23,freq_cur+1
+ 445 0242 8091 0000 		lds r24,freq_cur+2
+ 446 0246 9091 0000 		lds r25,freq_cur+3
+ 447 024a 20E0      		ldi r18,lo8(0x42700000)
+ 448 024c 30E0      		ldi r19,hi8(0x42700000)
+ 449 024e 40E7      		ldi r20,hlo8(0x42700000)
+ 450 0250 52E4      		ldi r21,hhi8(0x42700000)
+ 451 0252 0E94 0000 		call __mulsf3
+ 452 0256 20E0      		ldi r18,lo8(0x3f000000)
+ 453 0258 30E0      		ldi r19,hi8(0x3f000000)
+ 454 025a 40E0      		ldi r20,hlo8(0x3f000000)
+ 455 025c 5FE3      		ldi r21,hhi8(0x3f000000)
+ 456 025e 0E94 0000 		call __mulsf3
+ 457 0262 0E94 0000 		call __fixunssfsi
+ 458 0266 6093 0000 		sts rpm,r22
+ 459 026a 7093 0000 		sts rpm+1,r23
+ 460 026e 8093 0000 		sts rpm+2,r24
+ 461 0272 9093 0000 		sts rpm+3,r25
+ 462               	/* epilogue start */
+ 127:TachoMeter.c  ****     
+ 128:TachoMeter.c  ****     return rpm;
+ 129:TachoMeter.c  ****     
+ 130:TachoMeter.c  **** }
+ 464               	.LM30:
+ 465 0276 FF90      		pop r15
+ 466 0278 EF90      		pop r14
+ 467 027a DF90      		pop r13
+ 468 027c CF90      		pop r12
+ 469 027e 0895      		ret
+ 471               	.Lscope5:
+ 472               		.comm cnt_max,4,1
+ 473               		.comm cnt_min,4,1
+ 474               		.comm cnt,4,1
+ 475               	.global	tacho_n
+ 476               	.global	tacho_n
+ 477               		.section .bss
+ 480               	tacho_n:
+ 481 0000 0000      		.skip 2,0
+ 482               		.comm proc_array,4,1
+ 483               		.comm meas_array,4,1
+ 484               		.comm rpm,4,1
+ 485               		.comm freq_cur,4,1
+ 486               		.comm freq,4,1
+ 487               		.comm Ndiv,4,1
+ 488               		.comm FOSC,4,1
+ 500               		.text
+ 502               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 TachoMeter.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:107    .text:00000000 __vector_1
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:480    .bss:00000000 tacho_n
+                            *COM*:00000004 meas_array
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:196    .text:0000008c __vector_13
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:276    .text:00000104 BubbleSort
+                            *COM*:00000004 proc_array
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:305    .text:00000122 TachoMeter_init
+                            *COM*:00000004 FOSC
+                            *COM*:00000004 Ndiv
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKS0crg.s:336    .text:00000148 TachoMeter
+                            *COM*:00000004 freq
+                            *COM*:00000004 freq_cur
+                            *COM*:00000004 rpm
+                            *COM*:00000004 cnt_max
+                            *COM*:00000004 cnt_min
+                            *COM*:00000004 cnt
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+__udivmodsi4
+__floatunsisf
+__subsf3
+__ltsf2
+__mulsf3
+__fixunssfsi

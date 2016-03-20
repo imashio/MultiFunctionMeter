@@ -1,0 +1,132 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXFileReference section */
+		4079525F0CEA38CC00E202DC /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		63948B831A0BB37C003F5861 /* LEDarray.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = LEDarray.c; sourceTree = "<group>"; };
+		63948B841A0BB37C003F5861 /* LEDarray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LEDarray.h; sourceTree = "<group>"; };
+		63BF59AE1A0919B300A9EB18 /* BarMeter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BarMeter.h; sourceTree = "<group>"; };
+		63BF59AF1A0919B300A9EB18 /* ExtInterrupt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExtInterrupt.h; sourceTree = "<group>"; };
+		63BF59B01A0919B300A9EB18 /* lcd_595_softspi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lcd_595_softspi.h; sourceTree = "<group>"; };
+		63BF59B11A0919B300A9EB18 /* ledarray_595_softspi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ledarray_595_softspi.h; sourceTree = "<group>"; };
+		63BF59B21A0919B300A9EB18 /* usart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = usart.h; sourceTree = "<group>"; };
+		63BF59B31A0919B300A9EB18 /* BarMeter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BarMeter.c; sourceTree = "<group>"; };
+		63BF59B41A0919B300A9EB18 /* ExtInterrupt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ExtInterrupt.c; sourceTree = "<group>"; };
+		63BF59B51A0919B300A9EB18 /* lcd_595_softspi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lcd_595_softspi.c; sourceTree = "<group>"; };
+		63BF59B61A0919B300A9EB18 /* ledarray_595_softspi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ledarray_595_softspi.c; sourceTree = "<group>"; };
+		63BF59B71A0919B400A9EB18 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		63BF59B81A0919B400A9EB18 /* usart.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = usart.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		4079523B0CEA382200E202DC = {
+			isa = PBXGroup;
+			children = (
+				4079525D0CEA38CC00E202DC /* firmware */,
+			);
+			sourceTree = "<group>";
+		};
+		4079525D0CEA38CC00E202DC /* firmware */ = {
+			isa = PBXGroup;
+			children = (
+				4079525F0CEA38CC00E202DC /* Makefile */,
+				63BF59AE1A0919B300A9EB18 /* BarMeter.h */,
+				63BF59AF1A0919B300A9EB18 /* ExtInterrupt.h */,
+				63BF59B01A0919B300A9EB18 /* lcd_595_softspi.h */,
+				63BF59B11A0919B300A9EB18 /* ledarray_595_softspi.h */,
+				63BF59B21A0919B300A9EB18 /* usart.h */,
+				63BF59B31A0919B300A9EB18 /* BarMeter.c */,
+				63BF59B41A0919B300A9EB18 /* ExtInterrupt.c */,
+				63BF59B51A0919B300A9EB18 /* lcd_595_softspi.c */,
+				63BF59B61A0919B300A9EB18 /* ledarray_595_softspi.c */,
+				63BF59B71A0919B400A9EB18 /* main.c */,
+				63948B831A0BB37C003F5861 /* LEDarray.c */,
+				63948B841A0BB37C003F5861 /* LEDarray.h */,
+				63BF59B81A0919B400A9EB18 /* usart.c */,
+			);
+			path = firmware;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		407952600CEA391500E202DC /* firmware */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = program;
+			buildConfigurationList = 407952610CEA393300E202DC /* Build configuration list for PBXLegacyTarget "firmware" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = firmware;
+			dependencies = (
+			);
+			name = firmware;
+			passBuildSettingsInEnvironment = 1;
+			productName = "Build All";
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		4079523D0CEA382200E202DC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 4079523E0CEA382200E202DC /* Build configuration list for PBXProject "MFM_rev3" */;
+			compatibilityVersion = "Xcode 2.4";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 4079523B0CEA382200E202DC;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				407952600CEA391500E202DC /* firmware */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		407952400CEA382200E202DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+			};
+			name = Release;
+		};
+		407952630CEA393300E202DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PATH = "$(PATH):/usr/local/CrossPack-AVR/bin";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4079523E0CEA382200E202DC /* Build configuration list for PBXProject "MFM_rev3" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				407952400CEA382200E202DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		407952610CEA393300E202DC /* Build configuration list for PBXLegacyTarget "firmware" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				407952630CEA393300E202DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4079523D0CEA382200E202DC /* Project object */;
+}

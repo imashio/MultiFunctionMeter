@@ -1,0 +1,152 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXFileReference section */
+		4079525E0CEA38CC00E202DC /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		4079525F0CEA38CC00E202DC /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		63C816A71BB55C1800A52CEF /* ADC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ADC.h; sourceTree = "<group>"; };
+		63C816A81BB55C1800A52CEF /* BarMeter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BarMeter.h; sourceTree = "<group>"; };
+		63C816A91BB55C1800A52CEF /* ExtInterrupt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExtInterrupt.h; sourceTree = "<group>"; };
+		63C816AA1BB55C1800A52CEF /* facemark.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = facemark.h; sourceTree = "<group>"; };
+		63C816AB1BB55C1800A52CEF /* FuelPumpDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FuelPumpDriver.h; sourceTree = "<group>"; };
+		63C816AC1BB55C1800A52CEF /* lcd_595_softspi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lcd_595_softspi.h; sourceTree = "<group>"; };
+		63C816AD1BB55C1800A52CEF /* ledarray_595_softspi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ledarray_595_softspi.h; sourceTree = "<group>"; };
+		63C816AE1BB55C1800A52CEF /* LEDarray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LEDarray.h; sourceTree = "<group>"; };
+		63C816AF1BB55C1800A52CEF /* TachoMeter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TachoMeter.h; sourceTree = "<group>"; };
+		63C816B01BB55C1800A52CEF /* tictoc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tictoc.h; sourceTree = "<group>"; };
+		63C816B11BB55C1800A52CEF /* usart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = usart.h; sourceTree = "<group>"; };
+		63C816B21BB55C1800A52CEF /* ADC.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ADC.c; sourceTree = "<group>"; };
+		63C816B31BB55C1800A52CEF /* BarMeter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BarMeter.c; sourceTree = "<group>"; };
+		63C816B41BB55C1800A52CEF /* ExtInterrupt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ExtInterrupt.c; sourceTree = "<group>"; };
+		63C816B51BB55C1800A52CEF /* facemark.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = facemark.c; sourceTree = "<group>"; };
+		63C816B61BB55C1800A52CEF /* FuelPumpDriver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = FuelPumpDriver.c; sourceTree = "<group>"; };
+		63C816B71BB55C1800A52CEF /* lcd_595_softspi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lcd_595_softspi.c; sourceTree = "<group>"; };
+		63C816B81BB55C1800A52CEF /* ledarray_595_softspi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ledarray_595_softspi.c; sourceTree = "<group>"; };
+		63C816B91BB55C1800A52CEF /* LEDarray.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = LEDarray.c; sourceTree = "<group>"; };
+		63C816BA1BB55C1800A52CEF /* TachoMeter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = TachoMeter.c; sourceTree = "<group>"; };
+		63C816BB1BB55C1800A52CEF /* tictoc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tictoc.c; sourceTree = "<group>"; };
+		63C816BC1BB55C1800A52CEF /* usart.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = usart.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		4079523B0CEA382200E202DC = {
+			isa = PBXGroup;
+			children = (
+				4079525D0CEA38CC00E202DC /* firmware */,
+			);
+			sourceTree = "<group>";
+		};
+		4079525D0CEA38CC00E202DC /* firmware */ = {
+			isa = PBXGroup;
+			children = (
+				4079525F0CEA38CC00E202DC /* Makefile */,
+				4079525E0CEA38CC00E202DC /* main.c */,
+				63C816A71BB55C1800A52CEF /* ADC.h */,
+				63C816A81BB55C1800A52CEF /* BarMeter.h */,
+				63C816A91BB55C1800A52CEF /* ExtInterrupt.h */,
+				63C816AA1BB55C1800A52CEF /* facemark.h */,
+				63C816AB1BB55C1800A52CEF /* FuelPumpDriver.h */,
+				63C816AC1BB55C1800A52CEF /* lcd_595_softspi.h */,
+				63C816AD1BB55C1800A52CEF /* ledarray_595_softspi.h */,
+				63C816AE1BB55C1800A52CEF /* LEDarray.h */,
+				63C816AF1BB55C1800A52CEF /* TachoMeter.h */,
+				63C816B01BB55C1800A52CEF /* tictoc.h */,
+				63C816B11BB55C1800A52CEF /* usart.h */,
+				63C816B21BB55C1800A52CEF /* ADC.c */,
+				63C816B31BB55C1800A52CEF /* BarMeter.c */,
+				63C816B41BB55C1800A52CEF /* ExtInterrupt.c */,
+				63C816B51BB55C1800A52CEF /* facemark.c */,
+				63C816B61BB55C1800A52CEF /* FuelPumpDriver.c */,
+				63C816B71BB55C1800A52CEF /* lcd_595_softspi.c */,
+				63C816B81BB55C1800A52CEF /* ledarray_595_softspi.c */,
+				63C816B91BB55C1800A52CEF /* LEDarray.c */,
+				63C816BA1BB55C1800A52CEF /* TachoMeter.c */,
+				63C816BB1BB55C1800A52CEF /* tictoc.c */,
+				63C816BC1BB55C1800A52CEF /* usart.c */,
+			);
+			path = firmware;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		407952600CEA391500E202DC /* firmware */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = program;
+			buildConfigurationList = 407952610CEA393300E202DC /* Build configuration list for PBXLegacyTarget "firmware" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = firmware;
+			dependencies = (
+			);
+			name = firmware;
+			passBuildSettingsInEnvironment = 1;
+			productName = "Build All";
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		4079523D0CEA382200E202DC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 4079523E0CEA382200E202DC /* Build configuration list for PBXProject "MFM_rev10" */;
+			compatibilityVersion = "Xcode 2.4";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 4079523B0CEA382200E202DC;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				407952600CEA391500E202DC /* firmware */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		407952400CEA382200E202DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+			};
+			name = Release;
+		};
+		407952630CEA393300E202DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PATH = "$(PATH):/usr/local/CrossPack-AVR/bin";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4079523E0CEA382200E202DC /* Build configuration list for PBXProject "MFM_rev10" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				407952400CEA382200E202DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		407952610CEA393300E202DC /* Build configuration list for PBXLegacyTarget "firmware" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				407952630CEA393300E202DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4079523D0CEA382200E202DC /* Project object */;
+}

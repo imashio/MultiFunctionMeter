@@ -1,0 +1,150 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXFileReference section */
+		4079525E0CEA38CC00E202DC /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		4079525F0CEA38CC00E202DC /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		63C20FE11B2DA7F20057C9CA /* ADC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ADC.h; sourceTree = "<group>"; };
+		63C20FE21B2DA7F20057C9CA /* BarMeter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BarMeter.h; sourceTree = "<group>"; };
+		63C20FE31B2DA7F20057C9CA /* EEPROM_lib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EEPROM_lib.h; sourceTree = "<group>"; };
+		63C20FE41B2DA7F20057C9CA /* ExtInterrupt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExtInterrupt.h; sourceTree = "<group>"; };
+		63C20FE51B2DA7F20057C9CA /* facemark.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = facemark.h; sourceTree = "<group>"; };
+		63C20FE61B2DA7F20057C9CA /* FuelPumpDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FuelPumpDriver.h; sourceTree = "<group>"; };
+		63C20FE71B2DA7F20057C9CA /* lcd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lcd.h; sourceTree = "<group>"; };
+		63C20FE81B2DA7F20057C9CA /* TachoMeter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TachoMeter.h; sourceTree = "<group>"; };
+		63C20FE91B2DA7F20057C9CA /* tictoc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tictoc.h; sourceTree = "<group>"; };
+		63C20FEA1B2DA7F20057C9CA /* usart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = usart.h; sourceTree = "<group>"; };
+		63C20FEB1B2DA7F20057C9CA /* ADC.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ADC.c; sourceTree = "<group>"; };
+		63C20FEC1B2DA7F20057C9CA /* BarMeter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BarMeter.c; sourceTree = "<group>"; };
+		63C20FED1B2DA7F20057C9CA /* EEPROM_lib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = EEPROM_lib.c; sourceTree = "<group>"; };
+		63C20FEE1B2DA7F20057C9CA /* ExtInterrupt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ExtInterrupt.c; sourceTree = "<group>"; };
+		63C20FEF1B2DA7F20057C9CA /* facemark.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = facemark.c; sourceTree = "<group>"; };
+		63C20FF01B2DA7F20057C9CA /* FuelPumpDriver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = FuelPumpDriver.c; sourceTree = "<group>"; };
+		63C20FF11B2DA7F20057C9CA /* lcd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lcd.c; sourceTree = "<group>"; };
+		63C20FF21B2DA7F20057C9CA /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		63C20FF31B2DA7F20057C9CA /* TachoMeter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = TachoMeter.c; sourceTree = "<group>"; };
+		63C20FF41B2DA7F20057C9CA /* tictoc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tictoc.c; sourceTree = "<group>"; };
+		63C20FF51B2DA7F20057C9CA /* usart.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = usart.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		4079523B0CEA382200E202DC = {
+			isa = PBXGroup;
+			children = (
+				4079525D0CEA38CC00E202DC /* firmware */,
+			);
+			sourceTree = "<group>";
+		};
+		4079525D0CEA38CC00E202DC /* firmware */ = {
+			isa = PBXGroup;
+			children = (
+				4079525F0CEA38CC00E202DC /* Makefile */,
+				4079525E0CEA38CC00E202DC /* main.c */,
+				63C20FE11B2DA7F20057C9CA /* ADC.h */,
+				63C20FE21B2DA7F20057C9CA /* BarMeter.h */,
+				63C20FE31B2DA7F20057C9CA /* EEPROM_lib.h */,
+				63C20FE41B2DA7F20057C9CA /* ExtInterrupt.h */,
+				63C20FE51B2DA7F20057C9CA /* facemark.h */,
+				63C20FE61B2DA7F20057C9CA /* FuelPumpDriver.h */,
+				63C20FE71B2DA7F20057C9CA /* lcd.h */,
+				63C20FE81B2DA7F20057C9CA /* TachoMeter.h */,
+				63C20FE91B2DA7F20057C9CA /* tictoc.h */,
+				63C20FEA1B2DA7F20057C9CA /* usart.h */,
+				63C20FEB1B2DA7F20057C9CA /* ADC.c */,
+				63C20FEC1B2DA7F20057C9CA /* BarMeter.c */,
+				63C20FED1B2DA7F20057C9CA /* EEPROM_lib.c */,
+				63C20FEE1B2DA7F20057C9CA /* ExtInterrupt.c */,
+				63C20FEF1B2DA7F20057C9CA /* facemark.c */,
+				63C20FF01B2DA7F20057C9CA /* FuelPumpDriver.c */,
+				63C20FF11B2DA7F20057C9CA /* lcd.c */,
+				63C20FF21B2DA7F20057C9CA /* main.c */,
+				63C20FF31B2DA7F20057C9CA /* TachoMeter.c */,
+				63C20FF41B2DA7F20057C9CA /* tictoc.c */,
+				63C20FF51B2DA7F20057C9CA /* usart.c */,
+			);
+			path = firmware;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		407952600CEA391500E202DC /* firmware */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = program;
+			buildConfigurationList = 407952610CEA393300E202DC /* Build configuration list for PBXLegacyTarget "firmware" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = firmware;
+			dependencies = (
+			);
+			name = firmware;
+			passBuildSettingsInEnvironment = 1;
+			productName = "Build All";
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		4079523D0CEA382200E202DC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 4079523E0CEA382200E202DC /* Build configuration list for PBXProject "MFM1602_rev6" */;
+			compatibilityVersion = "Xcode 2.4";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 4079523B0CEA382200E202DC;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				407952600CEA391500E202DC /* firmware */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		407952400CEA382200E202DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+			};
+			name = Release;
+		};
+		407952630CEA393300E202DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PATH = "$(PATH):/usr/local/CrossPack-AVR/bin";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4079523E0CEA382200E202DC /* Build configuration list for PBXProject "MFM1602_rev6" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				407952400CEA382200E202DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		407952610CEA393300E202DC /* Build configuration list for PBXLegacyTarget "firmware" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				407952630CEA393300E202DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4079523D0CEA382200E202DC /* Project object */;
+}

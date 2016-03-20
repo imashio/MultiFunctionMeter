@@ -1,0 +1,323 @@
+   1               		.file	"BarMeter.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	BarMeter_init
+ 107               	BarMeter_init:
+   1:BarMeter.c    **** #include <avr/io.h>
+   2:BarMeter.c    **** #include <util/delay.h>
+   3:BarMeter.c    **** #include <avr/interrupt.h>
+   4:BarMeter.c    **** #include "lcd_595_softspi.h"
+   5:BarMeter.c    **** 
+   6:BarMeter.c    **** 
+   7:BarMeter.c    **** #define         BarMeter_N          8
+   8:BarMeter.c    **** #define         BarMeter_MIN        0.0
+   9:BarMeter.c    **** #define         BarMeter_MAX        8000
+  10:BarMeter.c    **** 
+  11:BarMeter.c    **** static const float    BarMeter_INTG = (BarMeter_MAX-BarMeter_MIN)/BarMeter_N;
+  12:BarMeter.c    **** 
+  13:BarMeter.c    **** void BarMeter_init(void){
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111 0000 DF92      		push r13
+ 112 0002 EF92      		push r14
+ 113 0004 FF92      		push r15
+ 114 0006 0F93      		push r16
+ 115 0008 1F93      		push r17
+ 116 000a CF93      		push r28
+ 117 000c DF93      		push r29
+ 118               	/* prologue: function */
+ 119               	/* frame size = 0 */
+ 120               	/* stack size = 7 */
+ 121               	.L__stack_usage = 7
+  14:BarMeter.c    ****     unsigned int code;
+  15:BarMeter.c    ****     unsigned int addr;
+  16:BarMeter.c    ****     
+  17:BarMeter.c    ****     // define User-characters
+  18:BarMeter.c    ****     for(code=0;code<6;code++){
+ 123               	.LM1:
+ 124 000e 00E0      		ldi r16,lo8(0)
+ 125 0010 10E0      		ldi r17,hi8(0)
+  19:BarMeter.c    ****         for(addr=0;addr<8;addr++){
+  20:BarMeter.c    ****             lcd_set_CGRAMaddr(code,addr);
+  21:BarMeter.c    ****             if( (addr > 1) & (addr < 6) )
+  22:BarMeter.c    ****                 lcd_set_char(~(0x1f>>code));
+ 127               	.LM2:
+ 128 0012 8FE1      		ldi r24,lo8(31)
+ 129 0014 E82E      		mov r14,r24
+ 130 0016 F12C      		mov r15,__zero_reg__
+ 131 0018 00C0      		rjmp .L2
+ 132               	.L9:
+  20:BarMeter.c    ****             lcd_set_CGRAMaddr(code,addr);
+ 134               	.LM3:
+ 135 001a 802F      		mov r24,r16
+ 136 001c 6C2F      		mov r22,r28
+ 137 001e 00D0      		rcall lcd_set_CGRAMaddr
+  21:BarMeter.c    ****             if( (addr > 1) & (addr < 6) )
+ 139               	.LM4:
+ 140 0020 9E01      		movw r18,r28
+ 141 0022 2250      		subi r18,lo8(-(-2))
+ 142 0024 3040      		sbci r19,hi8(-(-2))
+ 143 0026 2430      		cpi r18,4
+ 144 0028 3105      		cpc r19,__zero_reg__
+ 145 002a 00F4      		brsh .L3
+ 147               	.LM5:
+ 148 002c 8D2D      		mov r24,r13
+ 149 002e 00C0      		rjmp .L14
+ 150               	.L3:
+  23:BarMeter.c    ****             else if( (addr == 6) | (addr == 1) ) lcd_set_char(0x00);
+ 152               	.LM6:
+ 153 0030 C130      		cpi r28,1
+ 154 0032 D105      		cpc r29,__zero_reg__
+ 155 0034 01F0      		breq .L11
+ 156 0036 C630      		cpi r28,6
+ 157 0038 D105      		cpc r29,__zero_reg__
+ 158 003a 01F4      		brne .L13
+ 159               	.L11:
+ 161               	.LM7:
+ 162 003c 80E0      		ldi r24,lo8(0)
+ 163 003e 00C0      		rjmp .L14
+ 164               	.L13:
+  24:BarMeter.c    ****             else                                 lcd_set_char(0x10);
+ 166               	.LM8:
+ 167 0040 80E1      		ldi r24,lo8(16)
+ 168               	.L14:
+ 169 0042 00D0      		rcall lcd_set_char
+  19:BarMeter.c    ****         for(addr=0;addr<8;addr++){
+ 171               	.LM9:
+ 172 0044 2196      		adiw r28,1
+ 173 0046 C830      		cpi r28,8
+ 174 0048 D105      		cpc r29,__zero_reg__
+ 175 004a 01F4      		brne .L9
+  18:BarMeter.c    ****     for(code=0;code<6;code++){
+ 177               	.LM10:
+ 178 004c 0F5F      		subi r16,lo8(-(1))
+ 179 004e 1F4F      		sbci r17,hi8(-(1))
+ 180 0050 0630      		cpi r16,6
+ 181 0052 1105      		cpc r17,__zero_reg__
+ 182 0054 01F0      		breq .L1
+ 183               	.L2:
+  22:BarMeter.c    ****                 lcd_set_char(~(0x1f>>code));
+ 185               	.LM11:
+ 186 0056 C701      		movw r24,r14
+ 187 0058 002E      		mov r0,r16
+ 188 005a 00C0      		rjmp 2f
+ 189 005c 9595      	1:	asr r25
+ 190 005e 8795      		ror r24
+ 191 0060 0A94      	2:	dec r0
+ 192 0062 02F4      		brpl 1b
+ 193 0064 D82E      		mov r13,r24
+ 194 0066 D094      		com r13
+ 195 0068 C0E0      		ldi r28,lo8(0)
+ 196 006a D0E0      		ldi r29,hi8(0)
+ 197 006c 00C0      		rjmp .L9
+ 198               	.L1:
+ 199               	/* epilogue start */
+  25:BarMeter.c    ****         }
+  26:BarMeter.c    ****     }
+  27:BarMeter.c    **** }
+ 201               	.LM12:
+ 202 006e DF91      		pop r29
+ 203 0070 CF91      		pop r28
+ 204 0072 1F91      		pop r17
+ 205 0074 0F91      		pop r16
+ 206 0076 FF90      		pop r15
+ 207 0078 EF90      		pop r14
+ 208 007a DF90      		pop r13
+ 209 007c 0895      		ret
+ 215               	.Lscope1:
+ 217               	.global	BarMeter_disp
+ 219               	BarMeter_disp:
+  28:BarMeter.c    **** 
+  29:BarMeter.c    **** void BarMeter_disp(unsigned int data){
+ 221               	.LM13:
+ 222               	.LFBB2:
+ 223 007e 9F92      		push r9
+ 224 0080 AF92      		push r10
+ 225 0082 BF92      		push r11
+ 226 0084 CF92      		push r12
+ 227 0086 DF92      		push r13
+ 228 0088 EF92      		push r14
+ 229 008a FF92      		push r15
+ 230 008c 0F93      		push r16
+ 231 008e 1F93      		push r17
+ 232 0090 CF93      		push r28
+ 233 0092 DF93      		push r29
+ 234               	/* prologue: function */
+ 235               	/* frame size = 0 */
+ 236               	/* stack size = 11 */
+ 237               	.L__stack_usage = 11
+  30:BarMeter.c    ****     
+  31:BarMeter.c    ****     unsigned int    conv_data;
+  32:BarMeter.c    ****     
+  33:BarMeter.c    ****     unsigned char   INTG;
+  34:BarMeter.c    ****     unsigned char   FRAC;
+  35:BarMeter.c    ****     unsigned int    n;
+  36:BarMeter.c    ****     
+  37:BarMeter.c    ****     if( data > BarMeter_MAX ){
+  38:BarMeter.c    ****         data = BarMeter_MAX;
+  39:BarMeter.c    ****     }else if( data < BarMeter_MIN ){
+  40:BarMeter.c    ****         data = BarMeter_MIN;
+  41:BarMeter.c    ****     }
+  42:BarMeter.c    ****     
+  43:BarMeter.c    ****     conv_data = data - BarMeter_MIN;
+ 239               	.LM14:
+ 240 0094 BC01      		movw r22,r24
+ 241 0096 8FE1      		ldi r24,hi8(8001)
+ 242 0098 6134      		cpi r22,lo8(8001)
+ 243 009a 7807      		cpc r23,r24
+ 244 009c 00F0      		brlo .L16
+ 245 009e 60E4      		ldi r22,lo8(8000)
+ 246 00a0 7FE1      		ldi r23,hi8(8000)
+ 247               	.L16:
+ 248 00a2 80E0      		ldi r24,lo8(0)
+ 249 00a4 90E0      		ldi r25,hi8(0)
+ 250 00a6 00D0      		rcall __floatunsisf
+ 251 00a8 00D0      		rcall __fixunssfsi
+  44:BarMeter.c    ****     INTG = (unsigned int)(conv_data/BarMeter_INTG);
+ 253               	.LM15:
+ 254 00aa 80E0      		ldi r24,lo8(0)
+ 255 00ac 90E0      		ldi r25,hi8(0)
+ 256 00ae 00D0      		rcall __floatunsisf
+ 257 00b0 6B01      		movw r12,r22
+ 258 00b2 7C01      		movw r14,r24
+ 259 00b4 20E0      		ldi r18,lo8(0x447a0000)
+ 260 00b6 30E0      		ldi r19,hi8(0x447a0000)
+ 261 00b8 4AE7      		ldi r20,hlo8(0x447a0000)
+ 262 00ba 54E4      		ldi r21,hhi8(0x447a0000)
+ 263 00bc 00D0      		rcall __divsf3
+ 264 00be 00D0      		rcall __fixunssfsi
+ 265 00c0 962E      		mov r9,r22
+  45:BarMeter.c    ****     FRAC = (unsigned int)((conv_data - BarMeter_INTG*INTG)*1.0/BarMeter_INTG * 5);
+ 267               	.LM16:
+ 268 00c2 062F      		mov r16,r22
+ 269 00c4 10E0      		ldi r17,lo8(0)
+  46:BarMeter.c    **** 
+  47:BarMeter.c    ****     for(n=0;n<INTG;n++){
+ 271               	.LM17:
+ 272 00c6 C0E0      		ldi r28,lo8(0)
+ 273 00c8 D0E0      		ldi r29,hi8(0)
+ 274 00ca 5801      		movw r10,r16
+ 275 00cc 00C0      		rjmp .L17
+ 276               	.L18:
+  48:BarMeter.c    ****         lcd_set_char(0x5);
+ 278               	.LM18:
+ 279 00ce 85E0      		ldi r24,lo8(5)
+ 280 00d0 00D0      		rcall lcd_set_char
+  47:BarMeter.c    ****     for(n=0;n<INTG;n++){
+ 282               	.LM19:
+ 283 00d2 2196      		adiw r28,1
+ 284               	.L17:
+  47:BarMeter.c    ****     for(n=0;n<INTG;n++){
+ 286               	.LM20:
+ 287 00d4 CA15      		cp r28,r10
+ 288 00d6 DB05      		cpc r29,r11
+ 289 00d8 00F0      		brlo .L18
+  49:BarMeter.c    ****     }
+  50:BarMeter.c    ****     if( INTG != BarMeter_N ) lcd_set_char(FRAC);
+ 291               	.LM21:
+ 292 00da 88E0      		ldi r24,lo8(8)
+ 293 00dc 9816      		cp r9,r24
+ 294 00de 01F0      		breq .L19
+  45:BarMeter.c    ****     FRAC = (unsigned int)((conv_data - BarMeter_INTG*INTG)*1.0/BarMeter_INTG * 5);
+ 296               	.LM22:
+ 297 00e0 B801      		movw r22,r16
+ 298 00e2 8827      		clr r24
+ 299 00e4 77FD      		sbrc r23,7
+ 300 00e6 8095      		com r24
+ 301 00e8 982F      		mov r25,r24
+ 302 00ea 00D0      		rcall __floatsisf
+ 303 00ec 20E0      		ldi r18,lo8(0x447a0000)
+ 304 00ee 30E0      		ldi r19,hi8(0x447a0000)
+ 305 00f0 4AE7      		ldi r20,hlo8(0x447a0000)
+ 306 00f2 54E4      		ldi r21,hhi8(0x447a0000)
+ 307 00f4 00D0      		rcall __mulsf3
+ 308 00f6 9B01      		movw r18,r22
+ 309 00f8 AC01      		movw r20,r24
+ 310 00fa C701      		movw r24,r14
+ 311 00fc B601      		movw r22,r12
+ 312 00fe 00D0      		rcall __subsf3
+ 313 0100 20E0      		ldi r18,lo8(0x447a0000)
+ 314 0102 30E0      		ldi r19,hi8(0x447a0000)
+ 315 0104 4AE7      		ldi r20,hlo8(0x447a0000)
+ 316 0106 54E4      		ldi r21,hhi8(0x447a0000)
+ 317 0108 00D0      		rcall __divsf3
+ 318 010a 20E0      		ldi r18,lo8(0x40a00000)
+ 319 010c 30E0      		ldi r19,hi8(0x40a00000)
+ 320 010e 40EA      		ldi r20,hlo8(0x40a00000)
+ 321 0110 50E4      		ldi r21,hhi8(0x40a00000)
+ 322 0112 00D0      		rcall __mulsf3
+ 323 0114 00D0      		rcall __fixunssfsi
+ 325               	.LM23:
+ 326 0116 862F      		mov r24,r22
+ 327 0118 00D0      		rcall lcd_set_char
+ 328               	.L19:
+  51:BarMeter.c    ****     for(n=INTG+1;n<BarMeter_N;n++){
+ 330               	.LM24:
+ 331 011a C0E0      		ldi r28,lo8(0)
+ 332 011c D0E0      		ldi r29,hi8(0)
+ 333 011e 00C0      		rjmp .L20
+ 334               	.L21:
+  52:BarMeter.c    ****         lcd_set_char(0x0);
+ 336               	.LM25:
+ 337 0120 80E0      		ldi r24,lo8(0)
+ 338 0122 00D0      		rcall lcd_set_char
+ 339               	.L20:
+ 341               	.LM26:
+ 342 0124 2196      		adiw r28,1
+  51:BarMeter.c    ****     for(n=INTG+1;n<BarMeter_N;n++){
+ 344               	.LM27:
+ 345 0126 CE01      		movw r24,r28
+ 346 0128 8A0D      		add r24,r10
+ 347 012a 9B1D      		adc r25,r11
+ 348 012c 8830      		cpi r24,8
+ 349 012e 9105      		cpc r25,__zero_reg__
+ 350 0130 00F0      		brlo .L21
+ 351               	/* epilogue start */
+  53:BarMeter.c    ****     }
+  54:BarMeter.c    **** 
+  55:BarMeter.c    **** }
+ 353               	.LM28:
+ 354 0132 DF91      		pop r29
+ 355 0134 CF91      		pop r28
+ 356 0136 1F91      		pop r17
+ 357 0138 0F91      		pop r16
+ 358 013a FF90      		pop r15
+ 359 013c EF90      		pop r14
+ 360 013e DF90      		pop r13
+ 361 0140 CF90      		pop r12
+ 362 0142 BF90      		pop r11
+ 363 0144 AF90      		pop r10
+ 364 0146 9F90      		pop r9
+ 365 0148 0895      		ret
+ 370               	.Lscope2:
+ 372               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 BarMeter.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccUhIucL.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccUhIucL.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccUhIucL.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccUhIucL.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccUhIucL.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccUhIucL.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccUhIucL.s:107    .text:00000000 BarMeter_init
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccUhIucL.s:219    .text:0000007e BarMeter_disp
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+lcd_set_CGRAMaddr
+lcd_set_char
+__floatunsisf
+__fixunssfsi
+__divsf3
+__floatsisf
+__mulsf3
+__subsf3

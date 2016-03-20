@@ -1,0 +1,2416 @@
+   1               		.file	"main.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	set_initial_t_id
+ 107               	set_initial_t_id:
+   1:main.c        **** //
+   2:main.c        **** //             Multi Function Meter
+   3:main.c        **** //                  Revision 3
+   4:main.c        **** //
+   5:main.c        **** //    Display data of Defi Link Unit 2 daisy chain
+   6:main.c        **** //   "Measure Defi Link Unit 2 data interval freqency"
+   7:main.c        **** //
+   8:main.c        **** //      Display : SC2004
+   9:main.c        **** //
+  10:main.c        **** 
+  11:main.c        **** #include <math.h>
+  12:main.c        **** 
+  13:main.c        **** #include <avr/io.h>
+  14:main.c        **** #include <avr/interrupt.h>
+  15:main.c        **** #include <util/delay.h>
+  16:main.c        **** 
+  17:main.c        **** #include "lcd_595_softspi.h"
+  18:main.c        **** #include "ledarray_595_softspi.h"
+  19:main.c        **** #include "ExtInterrupt.h"
+  20:main.c        **** #include "usart.h"
+  21:main.c        **** #include "tictoc.h"
+  22:main.c        **** #include "TachoMeter.h"
+  23:main.c        **** #include "facemark.h"
+  24:main.c        **** 
+  25:main.c        **** // MCU clock speed (for USART & Tacho)
+  26:main.c        **** #define FOSC			8000000    // Clock Speed
+  27:main.c        **** 
+  28:main.c        **** // USART transmission speed definition
+  29:main.c        **** #define BAUD			19200       // USART baud rate
+  30:main.c        **** #define UBRR			FOSC/16/BAUD-1
+  31:main.c        **** 
+  32:main.c        **** // Number of Display data
+  33:main.c        **** #define Ndata           4
+  34:main.c        **** 
+  35:main.c        **** // Wait time interval
+  36:main.c        **** #define	WAIT			500 // unit : ms
+  37:main.c        **** 
+  38:main.c        **** // LCD width
+  39:main.c        **** #define LCD_W           20
+  40:main.c        **** 
+  41:main.c        **** // Display character width of Defi Link Tap "name + data"
+  42:main.c        **** #define DISP_W          11
+  43:main.c        **** //#define DISP_W          7
+  44:main.c        **** 
+  45:main.c        **** uint8_t     chg_index   = Ndata;
+  46:main.c        **** uint16_t    chg_count   = 0xffff;
+  47:main.c        **** 
+  48:main.c        **** //
+  49:main.c        **** uint8_t   RxID[] = {
+  50:main.c        ****         0x01,	// Turbo
+  51:main.c        ****         0x02,	// Tacho
+  52:main.c        ****         0x03,	// Oil pres.
+  53:main.c        ****         0x04,	// Fuel pres.
+  54:main.c        ****         0x05,	// Ext. Temp.
+  55:main.c        ****         0x07,	// Oil Temp.
+  56:main.c        ****         0x0f	// Water Temp.
+  57:main.c        **** };
+  58:main.c        **** 
+  59:main.c        **** // Measure Tarfet ID Declarations
+  60:main.c        **** uint8_t     t_id[Ndata];
+  61:main.c        **** void set_initial_t_id(void){
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111               	/* prologue: function */
+ 112               	/* frame size = 0 */
+ 113               	/* stack size = 0 */
+ 114               	.L__stack_usage = 0
+  62:main.c        ****     t_id[0] = 6;
+ 116               	.LM1:
+ 117 0000 86E0      		ldi r24,lo8(6)
+ 118 0002 8093 0000 		sts t_id,r24
+  63:main.c        ****     t_id[1] = 5;
+ 120               	.LM2:
+ 121 0006 85E0      		ldi r24,lo8(5)
+ 122 0008 8093 0000 		sts t_id+1,r24
+  64:main.c        ****     t_id[2] = 3;
+ 124               	.LM3:
+ 125 000c 83E0      		ldi r24,lo8(3)
+ 126 000e 8093 0000 		sts t_id+2,r24
+  65:main.c        ****     t_id[3] = 0;
+ 128               	.LM4:
+ 129 0012 1092 0000 		sts t_id+3,__zero_reg__
+ 130               	/* epilogue start */
+  66:main.c        **** }
+ 132               	.LM5:
+ 133 0016 0895      		ret
+ 135               	.Lscope1:
+ 136               		.data
+ 137               	.LC4:
+ 138 0000 4241 4449 		.string	"BADISR ERROR"
+ 138      5352 2045 
+ 138      5252 4F52 
+ 138      00
+ 139               		.text
+ 141               	.global	__vector_default
+ 143               	__vector_default:
+  67:main.c        **** 
+  68:main.c        **** uint8_t*    RxName[7];
+  69:main.c        **** uint8_t*    RxName_short[7];
+  70:main.c        **** uint8_t*    RxName_long[7];
+  71:main.c        **** 
+  72:main.c        **** uint8_t     RxNameLength[7];
+  73:main.c        **** 
+  74:main.c        **** uint8_t     lcd_update  = 1;            // if bit is "1" then Re-draw LCD
+  75:main.c        **** 
+  76:main.c        **** unsigned char	data[Ndata][4];         // Receive data from Defi Link Control Unit
+  77:main.c        **** //	data[*][0] : Control
+  78:main.c        **** //	data[*][1] : Angle Data (MSB)
+  79:main.c        **** //	data[*][2] : Angle Data
+  80:main.c        **** //	data[*][3] : Angle Data (LSB)
+  81:main.c        **** 
+  82:main.c        **** unsigned char	data_updated[Ndata];    // Data of packet
+  83:main.c        **** 
+  84:main.c        **** // Tacho Meter Variables Declaration
+  85:main.c        **** unsigned long int   rpm = 0;
+  86:main.c        **** 
+  87:main.c        **** // Variables for display update timer
+  88:main.c        **** uint16_t            timer2_cnt;
+  89:main.c        **** uint16_t            timer2_cnt_last = 0;
+  90:main.c        **** uint16_t            delay_cnt;
+  91:main.c        **** 
+  92:main.c        **** 
+  93:main.c        **** // Bad ISR interrput detector for debugging
+  94:main.c        **** ISR(BADISR_vect){
+ 145               	.LM6:
+ 146               	.LFBB2:
+ 147 0018 1F92      		push r1
+ 148 001a 0F92      		push r0
+ 149 001c 0FB6      		in r0,__SREG__
+ 150 001e 0F92      		push r0
+ 151 0020 1124      		clr __zero_reg__
+ 152               	/* prologue: Signal */
+ 153               	/* frame size = 0 */
+ 154               	/* stack size = 3 */
+ 155               	.L__stack_usage = 3
+  95:main.c        ****     cli();    // disable interrupt
+ 157               	.LM7:
+ 158               	/* #APP */
+ 159               	 ;  95 "main.c" 1
+ 160 0022 F894      		cli
+ 161               	 ;  0 "" 2
+  96:main.c        ****     lcd_locate(0,0);
+ 163               	.LM8:
+ 164               	/* #NOAPP */
+ 165 0024 80E0      		ldi r24,lo8(0)
+ 166 0026 60E0      		ldi r22,lo8(0)
+ 167 0028 00D0      		rcall lcd_locate
+  97:main.c        ****     lcd_set_str("BADISR ERROR");
+ 169               	.LM9:
+ 170 002a 80E0      		ldi r24,lo8(.LC4)
+ 171 002c 90E0      		ldi r25,hi8(.LC4)
+ 172 002e 00D0      		rcall lcd_set_str
+ 173               	.L3:
+ 174 0030 00C0      		rjmp .L3
+ 176               	.Lscope2:
+ 178               	.global	timer0_init
+ 180               	timer0_init:
+  98:main.c        ****     while(1);  // stop overall program
+  99:main.c        **** }
+ 100:main.c        **** 
+ 101:main.c        **** 
+ 102:main.c        **** // 8-bit timer intialazation for PWM FuelPump Driver
+ 103:main.c        **** unsigned long int   Ndiv0;
+ 104:main.c        **** void timer0_init(void) {
+ 182               	.LM10:
+ 183               	.LFBB3:
+ 184               	/* prologue: function */
+ 185               	/* frame size = 0 */
+ 186               	/* stack size = 0 */
+ 187               	.L__stack_usage = 0
+ 105:main.c        ****     TCCR0A  = 0b10000001;	// Timer/Counter1 Control Register A
+ 189               	.LM11:
+ 190 0032 81E8      		ldi r24,lo8(-127)
+ 191 0034 84BD      		out 68-32,r24
+ 106:main.c        ****     TCCR0B  = 0b00000100;
+ 193               	.LM12:
+ 194 0036 84E0      		ldi r24,lo8(4)
+ 195 0038 85BD      		out 69-32,r24
+ 107:main.c        ****     TIMSK0  = 0b00000000;   // ovfl interrupt is enabled for delay timer
+ 197               	.LM13:
+ 198 003a 1092 6E00 		sts 110,__zero_reg__
+ 108:main.c        ****     TCNT0   = 0x00;         // Initialize 8-bit counter bit
+ 200               	.LM14:
+ 201 003e 16BC      		out 70-32,__zero_reg__
+ 109:main.c        ****     OCR0A   = 0x00;         // Compare value for Fuel Pump driver PWM
+ 203               	.LM15:
+ 204 0040 17BC      		out 71-32,__zero_reg__
+ 110:main.c        ****     OCR0B   = 0xff;         // Compare value
+ 206               	.LM16:
+ 207 0042 8FEF      		ldi r24,lo8(-1)
+ 208 0044 88BD      		out 72-32,r24
+ 111:main.c        **** 
+ 112:main.c        ****     switch( TCCR0B & 0b00000111 ){
+ 210               	.LM17:
+ 211 0046 85B5      		in r24,69-32
+ 212 0048 90E0      		ldi r25,lo8(0)
+ 213 004a 8770      		andi r24,lo8(7)
+ 214 004c 9070      		andi r25,hi8(7)
+ 215 004e 8330      		cpi r24,3
+ 216 0050 9105      		cpc r25,__zero_reg__
+ 217 0052 01F0      		breq .L8
+ 218 0054 8430      		cpi r24,4
+ 219 0056 9105      		cpc r25,__zero_reg__
+ 220 0058 04F4      		brge .L11
+ 221 005a 8130      		cpi r24,1
+ 222 005c 9105      		cpc r25,__zero_reg__
+ 223 005e 01F0      		breq .L5
+ 224 0060 8230      		cpi r24,2
+ 225 0062 9105      		cpc r25,__zero_reg__
+ 226 0064 01F4      		brne .L5
+ 227 0066 00C0      		rjmp .L14
+ 228               	.L11:
+ 229 0068 8430      		cpi r24,4
+ 230 006a 9105      		cpc r25,__zero_reg__
+ 231 006c 01F0      		breq .L9
+ 232 006e 8530      		cpi r24,5
+ 233 0070 9105      		cpc r25,__zero_reg__
+ 234 0072 01F4      		brne .L5
+ 235 0074 00C0      		rjmp .L15
+ 236               	.L14:
+ 113:main.c        ****         case 0b001 :
+ 114:main.c        ****             Ndiv0 = 1;
+ 115:main.c        ****             break;
+ 116:main.c        ****         case 0b010 :
+ 117:main.c        ****             Ndiv0 = 8;
+ 238               	.LM18:
+ 239 0076 88E0      		ldi r24,lo8(8)
+ 240 0078 90E0      		ldi r25,hi8(8)
+ 241 007a A0E0      		ldi r26,hlo8(8)
+ 242 007c B0E0      		ldi r27,hhi8(8)
+ 243 007e 00C0      		rjmp .L13
+ 244               	.L8:
+ 118:main.c        ****             break;
+ 119:main.c        ****         case 0b011 :
+ 120:main.c        ****             Ndiv0 = 64;
+ 246               	.LM19:
+ 247 0080 80E4      		ldi r24,lo8(64)
+ 248 0082 90E0      		ldi r25,hi8(64)
+ 249 0084 A0E0      		ldi r26,hlo8(64)
+ 250 0086 B0E0      		ldi r27,hhi8(64)
+ 251 0088 00C0      		rjmp .L13
+ 252               	.L9:
+ 121:main.c        ****             break;
+ 122:main.c        ****         case 0b100 :
+ 123:main.c        ****             Ndiv0 = 256;
+ 254               	.LM20:
+ 255 008a 80E0      		ldi r24,lo8(256)
+ 256 008c 91E0      		ldi r25,hi8(256)
+ 257 008e A0E0      		ldi r26,hlo8(256)
+ 258 0090 B0E0      		ldi r27,hhi8(256)
+ 259 0092 00C0      		rjmp .L13
+ 260               	.L15:
+ 124:main.c        ****             break;
+ 125:main.c        ****         case 0b101 :
+ 126:main.c        ****             Ndiv0 = 1024;
+ 262               	.LM21:
+ 263 0094 80E0      		ldi r24,lo8(1024)
+ 264 0096 94E0      		ldi r25,hi8(1024)
+ 265 0098 A0E0      		ldi r26,hlo8(1024)
+ 266 009a B0E0      		ldi r27,hhi8(1024)
+ 267 009c 00C0      		rjmp .L13
+ 268               	.L5:
+ 127:main.c        ****             break;
+ 128:main.c        ****         default :
+ 129:main.c        ****             Ndiv0 = 1;
+ 270               	.LM22:
+ 271 009e 81E0      		ldi r24,lo8(1)
+ 272 00a0 90E0      		ldi r25,hi8(1)
+ 273 00a2 A0E0      		ldi r26,hlo8(1)
+ 274 00a4 B0E0      		ldi r27,hhi8(1)
+ 275               	.L13:
+ 276 00a6 8093 0000 		sts Ndiv0,r24
+ 277 00aa 9093 0000 		sts Ndiv0+1,r25
+ 278 00ae A093 0000 		sts Ndiv0+2,r26
+ 279 00b2 B093 0000 		sts Ndiv0+3,r27
+ 280 00b6 0895      		ret
+ 282               	.Lscope3:
+ 284               	.global	timer1_init
+ 286               	timer1_init:
+ 130:main.c        ****             break;
+ 131:main.c        ****     }
+ 132:main.c        ****     
+ 133:main.c        **** }
+ 134:main.c        **** 
+ 135:main.c        **** // 16-bit Counter intialazation for Tacho Meter
+ 136:main.c        **** unsigned long int   Ndiv1;
+ 137:main.c        **** void timer1_init(void) {
+ 288               	.LM23:
+ 289               	.LFBB4:
+ 290               	/* prologue: function */
+ 291               	/* frame size = 0 */
+ 292               	/* stack size = 0 */
+ 293               	.L__stack_usage = 0
+ 138:main.c        **** 	TCCR1A  = 0b00000000;	// Timer/Counter1 Control Register A
+ 295               	.LM24:
+ 296 00b8 1092 8000 		sts 128,__zero_reg__
+ 139:main.c        **** 	TCCR1B  = 0b00000011;
+ 298               	.LM25:
+ 299 00bc 83E0      		ldi r24,lo8(3)
+ 300 00be 8093 8100 		sts 129,r24
+ 140:main.c        **** 	TCCR1C  = 0b00000000;
+ 302               	.LM26:
+ 303 00c2 1092 8200 		sts 130,__zero_reg__
+ 141:main.c        **** 	TIMSK1  = 0b00000001;
+ 305               	.LM27:
+ 306 00c6 81E0      		ldi r24,lo8(1)
+ 307 00c8 8093 6F00 		sts 111,r24
+ 142:main.c        **** 	TCNT1   = 0x0000;         // Initialize 16-bit counter bit
+ 309               	.LM28:
+ 310 00cc 1092 8500 		sts 132+1,__zero_reg__
+ 311 00d0 1092 8400 		sts 132,__zero_reg__
+ 143:main.c        **** 	OCR1A   = 0xffff;         // 16-bit register for compare
+ 313               	.LM29:
+ 314 00d4 8FEF      		ldi r24,lo8(-1)
+ 315 00d6 9FEF      		ldi r25,hi8(-1)
+ 316 00d8 9093 8900 		sts 136+1,r25
+ 317 00dc 8093 8800 		sts 136,r24
+ 144:main.c        **** 
+ 145:main.c        ****     switch( TCCR1B & 0b00000111 ){
+ 319               	.LM30:
+ 320 00e0 8091 8100 		lds r24,129
+ 321 00e4 90E0      		ldi r25,lo8(0)
+ 322 00e6 8770      		andi r24,lo8(7)
+ 323 00e8 9070      		andi r25,hi8(7)
+ 324 00ea 8330      		cpi r24,3
+ 325 00ec 9105      		cpc r25,__zero_reg__
+ 326 00ee 01F0      		breq .L20
+ 327 00f0 8430      		cpi r24,4
+ 328 00f2 9105      		cpc r25,__zero_reg__
+ 329 00f4 04F4      		brge .L23
+ 330 00f6 8130      		cpi r24,1
+ 331 00f8 9105      		cpc r25,__zero_reg__
+ 332 00fa 01F0      		breq .L17
+ 333 00fc 8230      		cpi r24,2
+ 334 00fe 9105      		cpc r25,__zero_reg__
+ 335 0100 01F4      		brne .L17
+ 336 0102 00C0      		rjmp .L26
+ 337               	.L23:
+ 338 0104 8430      		cpi r24,4
+ 339 0106 9105      		cpc r25,__zero_reg__
+ 340 0108 01F0      		breq .L21
+ 341 010a 8530      		cpi r24,5
+ 342 010c 9105      		cpc r25,__zero_reg__
+ 343 010e 01F4      		brne .L17
+ 344 0110 00C0      		rjmp .L27
+ 345               	.L26:
+ 146:main.c        ****         case 0b001 :
+ 147:main.c        ****             Ndiv1 = 1;
+ 148:main.c        ****             break;
+ 149:main.c        ****         case 0b010 :
+ 150:main.c        ****             Ndiv1 = 8;
+ 347               	.LM31:
+ 348 0112 88E0      		ldi r24,lo8(8)
+ 349 0114 90E0      		ldi r25,hi8(8)
+ 350 0116 A0E0      		ldi r26,hlo8(8)
+ 351 0118 B0E0      		ldi r27,hhi8(8)
+ 352 011a 00C0      		rjmp .L25
+ 353               	.L20:
+ 151:main.c        ****             break;
+ 152:main.c        ****         case 0b011 :
+ 153:main.c        ****             Ndiv1 = 64;
+ 355               	.LM32:
+ 356 011c 80E4      		ldi r24,lo8(64)
+ 357 011e 90E0      		ldi r25,hi8(64)
+ 358 0120 A0E0      		ldi r26,hlo8(64)
+ 359 0122 B0E0      		ldi r27,hhi8(64)
+ 360 0124 00C0      		rjmp .L25
+ 361               	.L21:
+ 154:main.c        ****             break;
+ 155:main.c        ****         case 0b100 :
+ 156:main.c        ****             Ndiv1 = 256;
+ 363               	.LM33:
+ 364 0126 80E0      		ldi r24,lo8(256)
+ 365 0128 91E0      		ldi r25,hi8(256)
+ 366 012a A0E0      		ldi r26,hlo8(256)
+ 367 012c B0E0      		ldi r27,hhi8(256)
+ 368 012e 00C0      		rjmp .L25
+ 369               	.L27:
+ 157:main.c        ****             break;
+ 158:main.c        ****         case 0b101 :
+ 159:main.c        ****             Ndiv1 = 1024;
+ 371               	.LM34:
+ 372 0130 80E0      		ldi r24,lo8(1024)
+ 373 0132 94E0      		ldi r25,hi8(1024)
+ 374 0134 A0E0      		ldi r26,hlo8(1024)
+ 375 0136 B0E0      		ldi r27,hhi8(1024)
+ 376 0138 00C0      		rjmp .L25
+ 377               	.L17:
+ 160:main.c        ****             break;
+ 161:main.c        ****         default :
+ 162:main.c        ****             Ndiv1 = 1;
+ 379               	.LM35:
+ 380 013a 81E0      		ldi r24,lo8(1)
+ 381 013c 90E0      		ldi r25,hi8(1)
+ 382 013e A0E0      		ldi r26,hlo8(1)
+ 383 0140 B0E0      		ldi r27,hhi8(1)
+ 384               	.L25:
+ 385 0142 8093 0000 		sts Ndiv1,r24
+ 386 0146 9093 0000 		sts Ndiv1+1,r25
+ 387 014a A093 0000 		sts Ndiv1+2,r26
+ 388 014e B093 0000 		sts Ndiv1+3,r27
+ 389 0152 0895      		ret
+ 391               	.Lscope4:
+ 393               	.global	timer2_init
+ 395               	timer2_init:
+ 163:main.c        ****             break;
+ 164:main.c        ****     }
+ 165:main.c        ****     
+ 166:main.c        **** }
+ 167:main.c        **** 
+ 168:main.c        **** // 8-bit timer intialazation for Timing Control, LEDarray duty
+ 169:main.c        **** unsigned long int   Ndiv2;
+ 170:main.c        **** void timer2_init(void) {
+ 397               	.LM36:
+ 398               	.LFBB5:
+ 399               	/* prologue: function */
+ 400               	/* frame size = 0 */
+ 401               	/* stack size = 0 */
+ 402               	.L__stack_usage = 0
+ 171:main.c        ****     TCCR2A  = 0b00000000;	// Timer/Counter1 Control Register A
+ 404               	.LM37:
+ 405 0154 1092 B000 		sts 176,__zero_reg__
+ 172:main.c        ****     TCCR2B  = 0b00000101;
+ 407               	.LM38:
+ 408 0158 85E0      		ldi r24,lo8(5)
+ 409 015a 8093 B100 		sts 177,r24
+ 173:main.c        ****     TIMSK2  = 0b00000011;   // ovfl interrupt is enabled for delay timer
+ 411               	.LM39:
+ 412 015e 83E0      		ldi r24,lo8(3)
+ 413 0160 8093 7000 		sts 112,r24
+ 174:main.c        ****     TCNT2   = 0x00;         // Initialize 8-bit counter bit
+ 415               	.LM40:
+ 416 0164 1092 B200 		sts 178,__zero_reg__
+ 175:main.c        ****     OCR2A   = 8;
+ 418               	.LM41:
+ 419 0168 88E0      		ldi r24,lo8(8)
+ 420 016a 8093 B300 		sts 179,r24
+ 176:main.c        ****     
+ 177:main.c        ****     switch( TCCR2B & 0b00000111 ){
+ 422               	.LM42:
+ 423 016e 8091 B100 		lds r24,177
+ 424 0172 90E0      		ldi r25,lo8(0)
+ 425 0174 8770      		andi r24,lo8(7)
+ 426 0176 9070      		andi r25,hi8(7)
+ 427 0178 8430      		cpi r24,4
+ 428 017a 9105      		cpc r25,__zero_reg__
+ 429 017c 01F0      		breq .L33
+ 430 017e 8530      		cpi r24,5
+ 431 0180 9105      		cpc r25,__zero_reg__
+ 432 0182 04F4      		brge .L37
+ 433 0184 8230      		cpi r24,2
+ 434 0186 9105      		cpc r25,__zero_reg__
+ 435 0188 01F0      		breq .L31
+ 436 018a 8330      		cpi r24,3
+ 437 018c 9105      		cpc r25,__zero_reg__
+ 438 018e 04F4      		brge .L32
+ 439 0190 00C0      		rjmp .L29
+ 440               	.L37:
+ 441 0192 8630      		cpi r24,6
+ 442 0194 9105      		cpc r25,__zero_reg__
+ 443 0196 01F0      		breq .L35
+ 444 0198 8630      		cpi r24,6
+ 445 019a 9105      		cpc r25,__zero_reg__
+ 446 019c 04F0      		brlt .L34
+ 447 019e 8730      		cpi r24,7
+ 448 01a0 9105      		cpc r25,__zero_reg__
+ 449 01a2 01F4      		brne .L29
+ 450 01a4 00C0      		rjmp .L40
+ 451               	.L31:
+ 178:main.c        ****         case 0b001 :
+ 179:main.c        ****             Ndiv2 = 1;
+ 180:main.c        ****             break;
+ 181:main.c        ****         case 0b010 :
+ 182:main.c        ****             Ndiv2 = 8;
+ 453               	.LM43:
+ 454 01a6 88E0      		ldi r24,lo8(8)
+ 455 01a8 90E0      		ldi r25,hi8(8)
+ 456 01aa A0E0      		ldi r26,hlo8(8)
+ 457 01ac B0E0      		ldi r27,hhi8(8)
+ 458 01ae 00C0      		rjmp .L39
+ 459               	.L32:
+ 183:main.c        ****             break;
+ 184:main.c        ****         case 0b011 :
+ 185:main.c        ****             Ndiv2 = 32;
+ 461               	.LM44:
+ 462 01b0 80E2      		ldi r24,lo8(32)
+ 463 01b2 90E0      		ldi r25,hi8(32)
+ 464 01b4 A0E0      		ldi r26,hlo8(32)
+ 465 01b6 B0E0      		ldi r27,hhi8(32)
+ 466 01b8 00C0      		rjmp .L39
+ 467               	.L33:
+ 186:main.c        ****             break;
+ 187:main.c        ****         case 0b100 :
+ 188:main.c        ****             Ndiv2 = 64;
+ 469               	.LM45:
+ 470 01ba 80E4      		ldi r24,lo8(64)
+ 471 01bc 90E0      		ldi r25,hi8(64)
+ 472 01be A0E0      		ldi r26,hlo8(64)
+ 473 01c0 B0E0      		ldi r27,hhi8(64)
+ 474 01c2 00C0      		rjmp .L39
+ 475               	.L34:
+ 189:main.c        ****             break;
+ 190:main.c        ****         case 0b101 :
+ 191:main.c        ****             Ndiv2 = 128;
+ 477               	.LM46:
+ 478 01c4 80E8      		ldi r24,lo8(128)
+ 479 01c6 90E0      		ldi r25,hi8(128)
+ 480 01c8 A0E0      		ldi r26,hlo8(128)
+ 481 01ca B0E0      		ldi r27,hhi8(128)
+ 482 01cc 00C0      		rjmp .L39
+ 483               	.L35:
+ 192:main.c        ****             break;
+ 193:main.c        ****         case 0b110 :
+ 194:main.c        ****             Ndiv2 = 256;
+ 485               	.LM47:
+ 486 01ce 80E0      		ldi r24,lo8(256)
+ 487 01d0 91E0      		ldi r25,hi8(256)
+ 488 01d2 A0E0      		ldi r26,hlo8(256)
+ 489 01d4 B0E0      		ldi r27,hhi8(256)
+ 490 01d6 00C0      		rjmp .L39
+ 491               	.L40:
+ 195:main.c        ****             break;
+ 196:main.c        ****         case 0b111 :
+ 197:main.c        ****             Ndiv2 = 1024;
+ 493               	.LM48:
+ 494 01d8 80E0      		ldi r24,lo8(1024)
+ 495 01da 94E0      		ldi r25,hi8(1024)
+ 496 01dc A0E0      		ldi r26,hlo8(1024)
+ 497 01de B0E0      		ldi r27,hhi8(1024)
+ 498 01e0 00C0      		rjmp .L39
+ 499               	.L29:
+ 198:main.c        ****             break;
+ 199:main.c        ****         default :
+ 200:main.c        ****             Ndiv2 = 1;
+ 501               	.LM49:
+ 502 01e2 81E0      		ldi r24,lo8(1)
+ 503 01e4 90E0      		ldi r25,hi8(1)
+ 504 01e6 A0E0      		ldi r26,hlo8(1)
+ 505 01e8 B0E0      		ldi r27,hhi8(1)
+ 506               	.L39:
+ 507 01ea 8093 0000 		sts Ndiv2,r24
+ 508 01ee 9093 0000 		sts Ndiv2+1,r25
+ 509 01f2 A093 0000 		sts Ndiv2+2,r26
+ 510 01f6 B093 0000 		sts Ndiv2+3,r27
+ 511 01fa 0895      		ret
+ 513               	.Lscope5:
+ 515               	.global	__vector_18
+ 517               	__vector_18:
+ 201:main.c        ****             break;
+ 202:main.c        ****     }
+ 203:main.c        ****     
+ 204:main.c        **** }
+ 205:main.c        **** 
+ 206:main.c        **** unsigned int    USART_index;
+ 207:main.c        **** unsigned int    USART_data_index = 99; // do not initialize to "0"
+ 208:main.c        **** ISR(USART_RX_vect){
+ 519               	.LM50:
+ 520               	.LFBB6:
+ 521 01fc 1F92      		push r1
+ 522 01fe 0F92      		push r0
+ 523 0200 0FB6      		in r0,__SREG__
+ 524 0202 0F92      		push r0
+ 525 0204 1124      		clr __zero_reg__
+ 526 0206 2F93      		push r18
+ 527 0208 3F93      		push r19
+ 528 020a 4F93      		push r20
+ 529 020c 5F93      		push r21
+ 530 020e 6F93      		push r22
+ 531 0210 7F93      		push r23
+ 532 0212 8F93      		push r24
+ 533 0214 9F93      		push r25
+ 534 0216 AF93      		push r26
+ 535 0218 BF93      		push r27
+ 536 021a EF93      		push r30
+ 537 021c FF93      		push r31
+ 538               	/* prologue: Signal */
+ 539               	/* frame size = 0 */
+ 540               	/* stack size = 15 */
+ 541               	.L__stack_usage = 15
+ 209:main.c        ****     unsigned int    usart_data;
+ 210:main.c        ****     unsigned int    index;
+ 211:main.c        ****     
+ 212:main.c        ****     usart_data = USART_receive_woTO(); // Synchronize & Detect receiver ID
+ 543               	.LM51:
+ 544 021e 00D0      		rcall USART_receive_woTO
+ 545 0220 482F      		mov r20,r24
+ 546 0222 50E0      		ldi r21,lo8(0)
+ 213:main.c        ****     
+ 214:main.c        ****     if( (usart_data & 0xf0) == 0x00){ // received data is ID ?
+ 548               	.LM52:
+ 549 0224 9A01      		movw r18,r20
+ 550 0226 207F      		andi r18,lo8(240)
+ 551 0228 3070      		andi r19,hi8(240)
+ 552 022a 2115      		cp r18,__zero_reg__
+ 553 022c 3105      		cpc r19,__zero_reg__
+ 554 022e 01F4      		brne .L42
+ 555 0230 A0E0      		ldi r26,lo8(t_id)
+ 556 0232 B0E0      		ldi r27,hi8(t_id)
+ 557 0234 80E0      		ldi r24,lo8(0)
+ 558 0236 90E0      		ldi r25,hi8(0)
+ 559               	.L45:
+ 215:main.c        ****         // Is it display target ID ?
+ 216:main.c        ****         for(index=0;index<Ndata;index++){
+ 217:main.c        ****             if ( usart_data == RxID[t_id[index]] ){
+ 561               	.LM53:
+ 562 0238 ED91      		ld r30,X+
+ 563 023a F0E0      		ldi r31,lo8(0)
+ 564 023c E050      		subi r30,lo8(-(RxID))
+ 565 023e F040      		sbci r31,hi8(-(RxID))
+ 566 0240 2081      		ld r18,Z
+ 567 0242 30E0      		ldi r19,lo8(0)
+ 568 0244 4217      		cp r20,r18
+ 569 0246 5307      		cpc r21,r19
+ 570 0248 01F4      		brne .L43
+ 218:main.c        ****                 USART_index = index;
+ 572               	.LM54:
+ 573 024a 9093 0000 		sts USART_index+1,r25
+ 574 024e 8093 0000 		sts USART_index,r24
+ 219:main.c        ****                 USART_data_index = 0;
+ 576               	.LM55:
+ 577 0252 1092 0000 		sts USART_data_index+1,__zero_reg__
+ 578 0256 1092 0000 		sts USART_data_index,__zero_reg__
+ 220:main.c        ****                 break;
+ 580               	.LM56:
+ 581 025a 00C0      		rjmp .L41
+ 582               	.L43:
+ 216:main.c        ****         for(index=0;index<Ndata;index++){
+ 584               	.LM57:
+ 585 025c 0196      		adiw r24,1
+ 586 025e 8430      		cpi r24,4
+ 587 0260 9105      		cpc r25,__zero_reg__
+ 588 0262 01F4      		brne .L45
+ 589 0264 00C0      		rjmp .L41
+ 590               	.L42:
+ 221:main.c        ****             }
+ 222:main.c        ****         }
+ 223:main.c        ****     }else if( USART_data_index < 4 ){ // capture meter data
+ 592               	.LM58:
+ 593 0266 2091 0000 		lds r18,USART_data_index
+ 594 026a 3091 0000 		lds r19,USART_data_index+1
+ 595 026e 2430      		cpi r18,4
+ 596 0270 3105      		cpc r19,__zero_reg__
+ 597 0272 00F4      		brsh .L41
+ 224:main.c        ****         data[USART_index][USART_data_index] = usart_data;
+ 599               	.LM59:
+ 600 0274 4091 0000 		lds r20,USART_index
+ 601 0278 5091 0000 		lds r21,USART_index+1
+ 602 027c FA01      		movw r30,r20
+ 603 027e EE0F      		lsl r30
+ 604 0280 FF1F      		rol r31
+ 605 0282 EE0F      		lsl r30
+ 606 0284 FF1F      		rol r31
+ 607 0286 E20F      		add r30,r18
+ 608 0288 F31F      		adc r31,r19
+ 609 028a E050      		subi r30,lo8(-(data))
+ 610 028c F040      		sbci r31,hi8(-(data))
+ 611 028e 8083      		st Z,r24
+ 225:main.c        ****         if( USART_data_index == 3 ){
+ 613               	.LM60:
+ 614 0290 2330      		cpi r18,3
+ 615 0292 3105      		cpc r19,__zero_reg__
+ 616 0294 01F4      		brne .L46
+ 226:main.c        ****             data_updated[USART_index] = 1;
+ 618               	.LM61:
+ 619 0296 4050      		subi r20,lo8(-(data_updated))
+ 620 0298 5040      		sbci r21,hi8(-(data_updated))
+ 621 029a 81E0      		ldi r24,lo8(1)
+ 622 029c FA01      		movw r30,r20
+ 623 029e 8083      		st Z,r24
+ 227:main.c        ****             USART_data_index = 99;
+ 625               	.LM62:
+ 626 02a0 83E6      		ldi r24,lo8(99)
+ 627 02a2 90E0      		ldi r25,hi8(99)
+ 628 02a4 9093 0000 		sts USART_data_index+1,r25
+ 629 02a8 8093 0000 		sts USART_data_index,r24
+ 630 02ac 00C0      		rjmp .L41
+ 631               	.L46:
+ 228:main.c        ****         }else{
+ 229:main.c        ****             USART_data_index++;
+ 633               	.LM63:
+ 634 02ae 2F5F      		subi r18,lo8(-(1))
+ 635 02b0 3F4F      		sbci r19,hi8(-(1))
+ 636 02b2 3093 0000 		sts USART_data_index+1,r19
+ 637 02b6 2093 0000 		sts USART_data_index,r18
+ 638               	.L41:
+ 639               	/* epilogue start */
+ 230:main.c        ****         }
+ 231:main.c        ****     }
+ 232:main.c        ****     
+ 233:main.c        **** }
+ 641               	.LM64:
+ 642 02ba FF91      		pop r31
+ 643 02bc EF91      		pop r30
+ 644 02be BF91      		pop r27
+ 645 02c0 AF91      		pop r26
+ 646 02c2 9F91      		pop r25
+ 647 02c4 8F91      		pop r24
+ 648 02c6 7F91      		pop r23
+ 649 02c8 6F91      		pop r22
+ 650 02ca 5F91      		pop r21
+ 651 02cc 4F91      		pop r20
+ 652 02ce 3F91      		pop r19
+ 653 02d0 2F91      		pop r18
+ 654 02d2 0F90      		pop r0
+ 655 02d4 0FBE      		out __SREG__,r0
+ 656 02d6 0F90      		pop r0
+ 657 02d8 1F90      		pop r1
+ 658 02da 1895      		reti
+ 664               	.Lscope6:
+ 666               	.global	__vector_9
+ 668               	__vector_9:
+ 234:main.c        **** 
+ 235:main.c        **** 
+ 236:main.c        **** // 8-bit Timer2 overflow
+ 237:main.c        **** ISR(TIMER2_OVF_vect){
+ 670               	.LM65:
+ 671               	.LFBB7:
+ 672 02dc 1F92      		push r1
+ 673 02de 0F92      		push r0
+ 674 02e0 0FB6      		in r0,__SREG__
+ 675 02e2 0F92      		push r0
+ 676 02e4 1124      		clr __zero_reg__
+ 677 02e6 8F93      		push r24
+ 678 02e8 9F93      		push r25
+ 679               	/* prologue: Signal */
+ 680               	/* frame size = 0 */
+ 681               	/* stack size = 5 */
+ 682               	.L__stack_usage = 5
+ 238:main.c        ****     // increment counter for display update
+ 239:main.c        ****     timer2_cnt++;
+ 684               	.LM66:
+ 685 02ea 8091 0000 		lds r24,timer2_cnt
+ 686 02ee 9091 0000 		lds r25,timer2_cnt+1
+ 687 02f2 0196      		adiw r24,1
+ 688 02f4 9093 0000 		sts timer2_cnt+1,r25
+ 689 02f8 8093 0000 		sts timer2_cnt,r24
+ 690               	/* epilogue start */
+ 240:main.c        ****     
+ 241:main.c        ****     // LED array : display
+ 242:main.c        **** //    LEDarray((unsigned int)rpm);
+ 243:main.c        **** }
+ 692               	.LM67:
+ 693 02fc 9F91      		pop r25
+ 694 02fe 8F91      		pop r24
+ 695 0300 0F90      		pop r0
+ 696 0302 0FBE      		out __SREG__,r0
+ 697 0304 0F90      		pop r0
+ 698 0306 1F90      		pop r1
+ 699 0308 1895      		reti
+ 701               	.Lscope7:
+ 703               	.global	__vector_7
+ 705               	__vector_7:
+ 244:main.c        **** 
+ 245:main.c        **** // 8-bit Timer2 overflow
+ 246:main.c        **** ISR(TIMER2_COMPA_vect){
+ 707               	.LM68:
+ 708               	.LFBB8:
+ 709 030a 1F92      		push r1
+ 710 030c 0F92      		push r0
+ 711 030e 0FB6      		in r0,__SREG__
+ 712 0310 0F92      		push r0
+ 713 0312 1124      		clr __zero_reg__
+ 714               	/* prologue: Signal */
+ 715               	/* frame size = 0 */
+ 716               	/* stack size = 3 */
+ 717               	.L__stack_usage = 3
+ 718               	/* epilogue start */
+ 247:main.c        ****     // LED array : off
+ 248:main.c        **** //    send_bits_595_LED(0x00);
+ 249:main.c        **** }
+ 720               	.LM69:
+ 721 0314 0F90      		pop r0
+ 722 0316 0FBE      		out __SREG__,r0
+ 723 0318 0F90      		pop r0
+ 724 031a 1F90      		pop r1
+ 725 031c 1895      		reti
+ 727               	.Lscope8:
+ 730               	.global	StrLength
+ 732               	StrLength:
+ 250:main.c        **** 
+ 251:main.c        **** // Count character length
+ 252:main.c        **** int StrLength(const char *s){
+ 734               	.LM70:
+ 735               	.LFBB9:
+ 736               	/* prologue: function */
+ 737               	/* frame size = 0 */
+ 738               	/* stack size = 0 */
+ 739               	.L__stack_usage = 0
+ 740 031e FC01      		movw r30,r24
+ 253:main.c        ****     int n = 0;
+ 742               	.LM71:
+ 743 0320 20E0      		ldi r18,lo8(0)
+ 744 0322 30E0      		ldi r19,hi8(0)
+ 254:main.c        ****     while (*s++ != '\0')
+ 746               	.LM72:
+ 747 0324 00C0      		rjmp .L51
+ 748               	.L52:
+ 255:main.c        ****         n++;
+ 750               	.LM73:
+ 751 0326 2F5F      		subi r18,lo8(-(1))
+ 752 0328 3F4F      		sbci r19,hi8(-(1))
+ 753               	.L51:
+ 254:main.c        ****     while (*s++ != '\0')
+ 755               	.LM74:
+ 756 032a 8191      		ld r24,Z+
+ 757 032c 8823      		tst r24
+ 758 032e 01F4      		brne .L52
+ 256:main.c        ****     return (n);
+ 257:main.c        **** }
+ 760               	.LM75:
+ 761 0330 C901      		movw r24,r18
+ 762               	/* epilogue start */
+ 763 0332 0895      		ret
+ 768               	.Lscope9:
+ 770               	.global	DisplayItemInfo
+ 772               	DisplayItemInfo:
+ 258:main.c        **** 
+ 259:main.c        **** // Display
+ 260:main.c        **** void DisplayItemInfo(void){
+ 774               	.LM76:
+ 775               	.LFBB10:
+ 776 0334 1F93      		push r17
+ 777 0336 CF93      		push r28
+ 778 0338 DF93      		push r29
+ 779               	/* prologue: function */
+ 780               	/* frame size = 0 */
+ 781               	/* stack size = 3 */
+ 782               	.L__stack_usage = 3
+ 784               	.LM77:
+ 785 033a C0E0      		ldi r28,lo8(t_id)
+ 786 033c D0E0      		ldi r29,hi8(t_id)
+ 787 033e 10E0      		ldi r17,lo8(0)
+ 788               	.L54:
+ 261:main.c        ****     int k=0;
+ 262:main.c        ****     for(k=0;k<Ndata;k++){
+ 263:main.c        ****         lcd_locate(k,0);
+ 790               	.LM78:
+ 791 0340 812F      		mov r24,r17
+ 792 0342 60E0      		ldi r22,lo8(0)
+ 793 0344 00D0      		rcall lcd_locate
+ 264:main.c        ****         lcd_set_str((unsigned char*)RxName[t_id[k]]);
+ 795               	.LM79:
+ 796 0346 E991      		ld r30,Y+
+ 797 0348 F0E0      		ldi r31,lo8(0)
+ 798 034a EE0F      		lsl r30
+ 799 034c FF1F      		rol r31
+ 800 034e E050      		subi r30,lo8(-(RxName))
+ 801 0350 F040      		sbci r31,hi8(-(RxName))
+ 802 0352 8081      		ld r24,Z
+ 803 0354 9181      		ldd r25,Z+1
+ 804 0356 00D0      		rcall lcd_set_str
+ 805 0358 1F5F      		subi r17,lo8(-(1))
+ 262:main.c        ****     for(k=0;k<Ndata;k++){
+ 807               	.LM80:
+ 808 035a 1430      		cpi r17,lo8(4)
+ 809 035c 01F4      		brne .L54
+ 810               	/* epilogue start */
+ 265:main.c        ****     }
+ 266:main.c        ****     
+ 267:main.c        **** }
+ 812               	.LM81:
+ 813 035e DF91      		pop r29
+ 814 0360 CF91      		pop r28
+ 815 0362 1F91      		pop r17
+ 816 0364 0895      		ret
+ 818               	.Lscope10:
+ 819               		.data
+ 820               	.LC5:
+ 821 000d 424F 4F53 		.string	"BOOST"
+ 821      5400 
+ 822               	.LC6:
+ 823 0013 5441 4348 		.string	"TACHO"
+ 823      4F00 
+ 824               	.LC7:
+ 825 0019 4F49 4C2E 		.string	"OIL.P"
+ 825      5000 
+ 826               	.LC8:
+ 827 001f 4655 454C 		.string	"FUEL.P"
+ 827      2E50 00
+ 828               	.LC9:
+ 829 0026 4558 542E 		.string	"EXT.T"
+ 829      5400 
+ 830               	.LC10:
+ 831 002c 4F49 4C2E 		.string	"OIL.T"
+ 831      5400 
+ 832               	.LC11:
+ 833 0032 5741 5445 		.string	"WATER.T"
+ 833      522E 5400 
+ 834               	.LC12:
+ 835 003a 2020 00   		.string	"  "
+ 836               	.LC13:
+ 837 003d 5250 4D00 		.string	"RPM"
+ 838               	.LC0:
+ 839 0041 0300      		.word	3
+ 840 0043 2823      		.word	9000
+ 841 0045 0A00      		.word	10
+ 842 0047 0600      		.word	6
+ 843 0049 8403      		.word	900
+ 844 004b 6400      		.word	100
+ 845 004d 6400      		.word	100
+ 846               	.LC1:
+ 847 004f FFFF      		.word	-1
+ 848 0051 0000      		.word	0
+ 849 0053 0000      		.word	0
+ 850 0055 0000      		.word	0
+ 851 0057 C800      		.word	200
+ 852 0059 3200      		.word	50
+ 853 005b 1400      		.word	20
+ 854               	.LC2:
+ 855 005d 03        		.byte	3
+ 856 005e 04        		.byte	4
+ 857 005f 03        		.byte	3
+ 858 0060 03        		.byte	3
+ 859 0061 04        		.byte	4
+ 860 0062 03        		.byte	3
+ 861 0063 03        		.byte	3
+ 862               	.LC3:
+ 863 0064 01        		.byte	1
+ 864 0065 04        		.byte	4
+ 865 0066 02        		.byte	2
+ 866 0067 01        		.byte	1
+ 867 0068 04        		.byte	4
+ 868 0069 03        		.byte	3
+ 869 006a 03        		.byte	3
+ 870               		.section	.text.startup,"ax",@progbits
+ 872               	.global	main
+ 874               	main:
+ 268:main.c        **** 
+ 269:main.c        **** 
+ 270:main.c        **** int main(void)
+ 271:main.c        **** {
+ 876               	.LM82:
+ 877               	.LFBB11:
+ 878 0000 CF93      		push r28
+ 879 0002 DF93      		push r29
+ 880 0004 CDB7      		in r28,__SP_L__
+ 881 0006 DEB7      		in r29,__SP_H__
+ 882 0008 CC55      		subi r28,lo8(-(-92))
+ 883 000a D040      		sbci r29,hi8(-(-92))
+ 884 000c 0FB6      		in __tmp_reg__,__SREG__
+ 885 000e F894      		cli
+ 886 0010 DEBF      		out __SP_H__,r29
+ 887 0012 0FBE      		out __SREG__,__tmp_reg__
+ 888 0014 CDBF      		out __SP_L__,r28
+ 889               	/* prologue: function */
+ 890               	/* frame size = 92 */
+ 891               	/* stack size = 94 */
+ 892               	.L__stack_usage = 94
+ 272:main.c        **** 
+ 273:main.c        ****     // for 74HC595 port setting for LCD
+ 274:main.c        ****     SoftSPI_Init();
+ 894               	.LM83:
+ 895 0016 00D0      		rcall SoftSPI_Init
+ 275:main.c        ****     
+ 276:main.c        ****     // for 74HC595 port setting for LED array
+ 277:main.c        ****     SoftSPI_LED_Init();
+ 897               	.LM84:
+ 898 0018 00D0      		rcall SoftSPI_LED_Init
+ 278:main.c        ****     
+ 279:main.c        ****     // Initialize LCD
+ 280:main.c        **** 	lcd_init();
+ 900               	.LM85:
+ 901 001a 00D0      		rcall lcd_init
+ 281:main.c        **** 	
+ 282:main.c        ****     // Timer for PWM driver initialize
+ 283:main.c        ****     timer0_init();
+ 903               	.LM86:
+ 904 001c 00D0      		rcall timer0_init
+ 284:main.c        ****     
+ 285:main.c        ****     // TachoMeter counter initialize
+ 286:main.c        ****     timer1_init();
+ 906               	.LM87:
+ 907 001e 00D0      		rcall timer1_init
+ 287:main.c        **** 
+ 288:main.c        ****     // delay counter initialize
+ 289:main.c        ****     timer2_init();
+ 909               	.LM88:
+ 910 0020 00D0      		rcall timer2_init
+ 290:main.c        ****     
+ 291:main.c        ****     // PWM output port definition
+ 292:main.c        ****     DDRD |= (1<<PD6);
+ 912               	.LM89:
+ 913 0022 569A      		sbi 42-32,6
+ 293:main.c        ****     
+ 294:main.c        **** 	// USART initialize
+ 295:main.c        **** 	USARTinit(UBRR);
+ 915               	.LM90:
+ 916 0024 89E1      		ldi r24,lo8(25)
+ 917 0026 90E0      		ldi r25,hi8(25)
+ 918 0028 00D0      		rcall USARTinit
+ 296:main.c        **** 	
+ 297:main.c        **** 	// Ext. Interupt setting
+ 298:main.c        **** 	ExtInterrupt_init();
+ 920               	.LM91:
+ 921 002a 00D0      		rcall ExtInterrupt_init
+ 299:main.c        ****     
+ 300:main.c        ****     // TicToc initialize
+ 301:main.c        ****     tictoc_init(FOSC, Ndiv1);
+ 923               	.LM92:
+ 924 002c 6091 0000 		lds r22,Ndiv1
+ 925 0030 7091 0000 		lds r23,Ndiv1+1
+ 926 0034 80E0      		ldi r24,lo8(4608)
+ 927 0036 92E1      		ldi r25,hi8(4608)
+ 928 0038 00D0      		rcall tictoc_init
+ 302:main.c        ****     
+ 303:main.c        ****     // Tacho Meter Initialize
+ 304:main.c        ****     TachoMeter_init(FOSC,Ndiv1);
+ 930               	.LM93:
+ 931 003a 2091 0000 		lds r18,Ndiv1
+ 932 003e 3091 0000 		lds r19,Ndiv1+1
+ 933 0042 4091 0000 		lds r20,Ndiv1+2
+ 934 0046 5091 0000 		lds r21,Ndiv1+3
+ 935 004a 60E0      		ldi r22,lo8(8000000)
+ 936 004c 72E1      		ldi r23,hi8(8000000)
+ 937 004e 8AE7      		ldi r24,hlo8(8000000)
+ 938 0050 90E0      		ldi r25,hhi8(8000000)
+ 939 0052 00D0      		rcall TachoMeter_init
+ 305:main.c        ****     
+ 306:main.c        ****     // Bar-Meter Initialize
+ 307:main.c        ****     BarMeter_init();
+ 941               	.LM94:
+ 942 0054 00D0      		rcall BarMeter_init
+ 308:main.c        ****     
+ 309:main.c        ****     // Facemark character Initialize
+ 310:main.c        ****     FaceMark_init();
+ 944               	.LM95:
+ 945 0056 00D0      		rcall FaceMark_init
+ 311:main.c        ****     
+ 312:main.c        ****     // Set Initial Target IDs
+ 313:main.c        ****     set_initial_t_id();
+ 947               	.LM96:
+ 948 0058 00D0      		rcall set_initial_t_id
+ 314:main.c        ****     
+ 315:main.c        **** 	// Declarations
+ 316:main.c        **** 	unsigned char*   opening_message0 = "Multi-Function Meter";
+ 317:main.c        ****     unsigned char*   opening_message1 = "     Timer Test     ";
+ 318:main.c        ****     unsigned char*   opening_message2 = "   Firmware Rev.6   ";
+ 319:main.c        ****     
+ 320:main.c        **** 	uint8_t         n, m;					// 'for' loop variables
+ 321:main.c        ****     
+ 322:main.c        **** 	uint8_t         index = 0;				// LCD displaying data index
+ 323:main.c        **** 	
+ 324:main.c        **** 	uint16_t		maxv = 2352;			// maximum decimal angle data value from 'Defi Link Unit II'
+ 325:main.c        ****     
+ 326:main.c        **** 	uint8_t         id;						// ID index for processing
+ 327:main.c        ****     
+ 328:main.c        **** 	uint8_t         valid_packet[Ndata];	// Validtity indicator
+ 329:main.c        **** 	
+ 330:main.c        **** 	uint8_t			low4bits[4];			// Extracted lower 4 bits from byte data
+ 331:main.c        **** 	uint16_t        dec_ang;				// Angle data (decimal)
+ 332:main.c        **** 	float           dec_nrm;				// Angle data (decimal)
+ 333:main.c        **** 	float			value[Ndata];			// Decoded value
+ 334:main.c        ****     uint16_t        mult_factor[3];		// Multiplying factor for hexadecimal to decimal decoding
+ 335:main.c        ****     
+ 336:main.c        **** 	uint8_t         digits_int[5];			// Digits integer data
+ 337:main.c        **** 	unsigned char	digits_char[5];			// Digits character data for display
+ 338:main.c        ****     
+ 339:main.c        **** 	float           div_factor;				// Dividing factor for integer
+ 340:main.c        **** 	uint8_t         digits_valid;			// Indicate digits in integer are valid or invalid
+ 341:main.c        ****     
+ 342:main.c        ****     // value = eq_grad * dec_nrm + eq_intercept
+ 343:main.c        ****     // Gradient-term of decoding equation
+ 344:main.c        **** 	uint16_t eq_grad[] = {
+ 950               	.LM97:
+ 951 005a DE01      		movw r26,r28
+ 952 005c D996      		adiw r26,57
+ 953 005e E0E0      		ldi r30,lo8(.LC0)
+ 954 0060 F0E0      		ldi r31,hi8(.LC0)
+ 955 0062 8EE0      		ldi r24,lo8(14)
+ 956               	.L57:
+ 957 0064 0190      		ld r0,Z+
+ 958 0066 0D92      		st X+,r0
+ 959 0068 8150      		subi r24,lo8(-(-1))
+ 960 006a 01F4      		brne .L57
+ 345:main.c        ****         3,	// Turbo
+ 346:main.c        ****         9000,	// Tacho
+ 347:main.c        ****         10,	// Oil pres.
+ 348:main.c        ****         6,	// Fuel pres.
+ 349:main.c        ****         900,	// Ext. Temp.
+ 350:main.c        ****         100,	// Oil Temp.
+ 351:main.c        ****         100	// Water Temp.
+ 352:main.c        ****     };
+ 353:main.c        ****     
+ 354:main.c        ****     // Intercept-term of decoding equation
+ 355:main.c        ****     int16_t eq_intercept[] = {
+ 962               	.LM98:
+ 963 006c DE01      		movw r26,r28
+ 964 006e 9B96      		adiw r26,43
+ 965 0070 E0E0      		ldi r30,lo8(.LC1)
+ 966 0072 F0E0      		ldi r31,hi8(.LC1)
+ 967 0074 8EE0      		ldi r24,lo8(14)
+ 968               	.L58:
+ 969 0076 0190      		ld r0,Z+
+ 970 0078 0D92      		st X+,r0
+ 971 007a 8150      		subi r24,lo8(-(-1))
+ 972 007c 01F4      		brne .L58
+ 356:main.c        ****         -1,	// Turbo
+ 357:main.c        ****         0,	// Tacho
+ 358:main.c        ****         0,	// Oil pres.
+ 359:main.c        ****         0,	// Fuel pres.
+ 360:main.c        ****         200,	// Ext. Temp.
+ 361:main.c        ****         50,	// Oil Temp.
+ 362:main.c        ****         20	// Water Temp.
+ 363:main.c        ****     };
+ 364:main.c        ****     
+ 365:main.c        ****     // Definition of number of significant figure
+ 366:main.c        **** 	uint8_t   Nsig[] = {				// Number of significant figures
+ 974               	.LM99:
+ 975 007e DE01      		movw r26,r28
+ 976 0080 9496      		adiw r26,36
+ 977 0082 E0E0      		ldi r30,lo8(.LC2)
+ 978 0084 F0E0      		ldi r31,hi8(.LC2)
+ 979 0086 87E0      		ldi r24,lo8(7)
+ 980               	.L59:
+ 981 0088 0190      		ld r0,Z+
+ 982 008a 0D92      		st X+,r0
+ 983 008c 8150      		subi r24,lo8(-(-1))
+ 984 008e 01F4      		brne .L59
+ 367:main.c        ****         3,	// Turbo
+ 368:main.c        ****         4,	// Tacho
+ 369:main.c        ****         3,	// Oil pres.
+ 370:main.c        ****         3,	// Fuel pres.
+ 371:main.c        ****         4,	// Ext. Temp.
+ 372:main.c        ****         3,	// Oil Temp.
+ 373:main.c        ****         3	// Water Temp.
+ 374:main.c        ****     };
+ 375:main.c        ****     
+ 376:main.c        ****     // Deifinition of number of integer figure
+ 377:main.c        **** 	uint8_t	Nint[] = {				// Number of integr digits
+ 986               	.LM100:
+ 987 0090 DE01      		movw r26,r28
+ 988 0092 5D96      		adiw r26,29
+ 989 0094 E0E0      		ldi r30,lo8(.LC3)
+ 990 0096 F0E0      		ldi r31,hi8(.LC3)
+ 991 0098 87E0      		ldi r24,lo8(7)
+ 992               	.L60:
+ 993 009a 0190      		ld r0,Z+
+ 994 009c 0D92      		st X+,r0
+ 995 009e 8150      		subi r24,lo8(-(-1))
+ 996 00a0 01F4      		brne .L60
+ 378:main.c        ****         1,	// Turbo
+ 379:main.c        ****         4,	// Tacho
+ 380:main.c        ****         2,	// Oil pres.
+ 381:main.c        ****         1,	// Fuel pres.
+ 382:main.c        ****         4,	// Ext. Temp.
+ 383:main.c        ****         3,	// Oil Temp.
+ 384:main.c        ****         3	// Water Temp.
+ 385:main.c        ****     };
+ 386:main.c        ****     
+ 387:main.c        ****     uint8_t	SIGN[] = {				// Show +/-, enable showing is '1'
+ 998               	.LM101:
+ 999 00a2 81E0      		ldi r24,lo8(1)
+ 1000 00a4 8E8B      		std Y+22,r24
+ 1001 00a6 1F8A      		std Y+23,__zero_reg__
+ 1002 00a8 188E      		std Y+24,__zero_reg__
+ 1003 00aa 198E      		std Y+25,__zero_reg__
+ 1004 00ac 1A8E      		std Y+26,__zero_reg__
+ 1005 00ae 1B8E      		std Y+27,__zero_reg__
+ 1006 00b0 1C8E      		std Y+28,__zero_reg__
+ 388:main.c        ****         1,	// Turbo
+ 389:main.c        ****         0,	// Tacho
+ 390:main.c        ****         0,	// Oil pres.
+ 391:main.c        ****         0,	// Fuel pres.
+ 392:main.c        ****         0,	// Ext. Temp.
+ 393:main.c        ****         0,	// Oil Temp.
+ 394:main.c        ****         0	// Water Temp.
+ 395:main.c        ****     };
+ 396:main.c        ****     
+ 397:main.c        **** 	uint8_t	Nspace[7];				// Number of space between character and digits
+ 398:main.c        ****     float   Resolution[7];
+ 399:main.c        **** 
+ 400:main.c        **** 
+ 401:main.c        ****     RxName[0]		=   "BOOST";
+ 1008               	.LM102:
+ 1009 00b2 80E0      		ldi r24,lo8(.LC5)
+ 1010 00b4 90E0      		ldi r25,hi8(.LC5)
+ 1011 00b6 9093 0000 		sts RxName+1,r25
+ 1012 00ba 8093 0000 		sts RxName,r24
+ 402:main.c        ****     RxName[1]		=   "TACHO";
+ 1014               	.LM103:
+ 1015 00be 80E0      		ldi r24,lo8(.LC6)
+ 1016 00c0 90E0      		ldi r25,hi8(.LC6)
+ 1017 00c2 9093 0000 		sts RxName+2+1,r25
+ 1018 00c6 8093 0000 		sts RxName+2,r24
+ 403:main.c        ****     RxName[2]		=   "OIL.P";
+ 1020               	.LM104:
+ 1021 00ca 80E0      		ldi r24,lo8(.LC7)
+ 1022 00cc 90E0      		ldi r25,hi8(.LC7)
+ 1023 00ce 9093 0000 		sts RxName+4+1,r25
+ 1024 00d2 8093 0000 		sts RxName+4,r24
+ 404:main.c        ****     RxName[3]		=   "FUEL.P";
+ 1026               	.LM105:
+ 1027 00d6 80E0      		ldi r24,lo8(.LC8)
+ 1028 00d8 90E0      		ldi r25,hi8(.LC8)
+ 1029 00da 9093 0000 		sts RxName+6+1,r25
+ 1030 00de 8093 0000 		sts RxName+6,r24
+ 405:main.c        ****     RxName[4]		=   "EXT.T";
+ 1032               	.LM106:
+ 1033 00e2 80E0      		ldi r24,lo8(.LC9)
+ 1034 00e4 90E0      		ldi r25,hi8(.LC9)
+ 1035 00e6 9093 0000 		sts RxName+8+1,r25
+ 1036 00ea 8093 0000 		sts RxName+8,r24
+ 406:main.c        ****     RxName[5]		=   "OIL.T";
+ 1038               	.LM107:
+ 1039 00ee 80E0      		ldi r24,lo8(.LC10)
+ 1040 00f0 90E0      		ldi r25,hi8(.LC10)
+ 1041 00f2 9093 0000 		sts RxName+10+1,r25
+ 1042 00f6 8093 0000 		sts RxName+10,r24
+ 407:main.c        ****     RxName[6]		=   "WATER.T";
+ 1044               	.LM108:
+ 1045 00fa 80E0      		ldi r24,lo8(.LC11)
+ 1046 00fc 90E0      		ldi r25,hi8(.LC11)
+ 1047 00fe 9093 0000 		sts RxName+12+1,r25
+ 1048 0102 8093 0000 		sts RxName+12,r24
+ 1049 0106 24E2      		ldi r18,lo8(36)
+ 1050 0108 A22E      		mov r10,r18
+ 1051 010a B12C      		mov r11,__zero_reg__
+ 1052 010c AC0E      		add r10,r28
+ 1053 010e BD1E      		adc r11,r29
+ 1054 0110 3DE1      		ldi r19,lo8(29)
+ 1055 0112 832E      		mov r8,r19
+ 1056 0114 912C      		mov r9,__zero_reg__
+ 1057 0116 8C0E      		add r8,r28
+ 1058 0118 9D1E      		adc r9,r29
+ 1059 011a 00E0      		ldi r16,lo8(0)
+ 1060 011c 10E0      		ldi r17,hi8(0)
+ 408:main.c        **** 
+ 409:main.c        **** /*
+ 410:main.c        **** 	RxName[0]		=   "Boost";
+ 411:main.c        **** 	RxName[1]		=   "Tacho";
+ 412:main.c        **** 	RxName[2]		=   "Oil.P";
+ 413:main.c        **** 	RxName[3]		=   "Fuel.P";
+ 414:main.c        **** 	RxName[4]		=   "ExTmp";
+ 415:main.c        **** 	RxName[5]		=   "Oil.T";
+ 416:main.c        **** 	RxName[6]		=   "Water.T";
+ 417:main.c        **** */
+ 418:main.c        ****     
+ 419:main.c        **** /*
+ 420:main.c        **** 	RxName[0]	=   "BS";
+ 421:main.c        **** 	RxName[1]	=   "TC";
+ 422:main.c        **** 	RxName[2]	=   "OP";
+ 423:main.c        **** 	RxName[3]	=   "FP";
+ 424:main.c        **** 	RxName[4]	=   "ET";
+ 425:main.c        **** 	RxName[5]	=   "OT";
+ 426:main.c        **** 	RxName[6]	=   "WT";
+ 427:main.c        **** */
+ 428:main.c        ****     
+ 429:main.c        **** /*
+ 430:main.c        **** 	RxName[0]	=   "Boost";
+ 431:main.c        **** 	RxName[1]	=   "Tacho";
+ 432:main.c        **** 	RxName[2]	=   "Oil press";
+ 433:main.c        **** 	RxName[3]	=   "Fuel press";
+ 434:main.c        **** 	RxName[4]	=   "Ext. Temp.";
+ 435:main.c        **** 	RxName[5]	=   "Oil Temp.";
+ 436:main.c        **** 	RxName[6]	=   "Water Temp.";
+ 437:main.c        **** */
+ 438:main.c        ****     
+ 439:main.c        ****     // Definition of Resolution for processing and number of space for display
+ 440:main.c        ****     for(n=0;n<7;n++){
+ 441:main.c        ****         Resolution[n] = 1;
+ 442:main.c        ****         for(m=0;m<Nsig[n]-Nint[n];m++){
+ 443:main.c        ****             Resolution[n] = Resolution[n] / 10;
+ 444:main.c        ****         }
+ 445:main.c        ****         RxNameLength[n] = StrLength(RxName[n]);
+ 446:main.c        ****         Nspace[n]       = DISP_W - RxNameLength[n] - ( Nsig[n] + (Nsig[n]!=Nint[n]) + SIGN[n] );
+ 1062               	.LM109:
+ 1063 011e 4BE0      		ldi r20,lo8(11)
+ 1064 0120 C42E      		mov r12,r20
+ 1065 0122 00C0      		rjmp .L61
+ 1066               	.L62:
+ 442:main.c        ****         for(m=0;m<Nsig[n]-Nint[n];m++){
+ 1068               	.LM110:
+ 1069 0124 4F5F      		subi r20,lo8(-(1))
+ 1070               	.L65:
+ 442:main.c        ****         for(m=0;m<Nsig[n]-Nint[n];m++){
+ 1072               	.LM111:
+ 1073 0126 242F      		mov r18,r20
+ 1074 0128 30E0      		ldi r19,lo8(0)
+ 1075 012a 2817      		cp r18,r24
+ 1076 012c 3907      		cpc r19,r25
+ 1077 012e 04F0      		brlt .L62
+ 445:main.c        ****         RxNameLength[n] = StrLength(RxName[n]);
+ 1079               	.LM112:
+ 1080 0130 F801      		movw r30,r16
+ 1081 0132 EE0F      		lsl r30
+ 1082 0134 FF1F      		rol r31
+ 1083 0136 E050      		subi r30,lo8(-(RxName))
+ 1084 0138 F040      		sbci r31,hi8(-(RxName))
+ 1085 013a 8081      		ld r24,Z
+ 1086 013c 9181      		ldd r25,Z+1
+ 1087 013e 00D0      		rcall StrLength
+ 1088 0140 F801      		movw r30,r16
+ 1089 0142 E050      		subi r30,lo8(-(RxNameLength))
+ 1090 0144 F040      		sbci r31,hi8(-(RxNameLength))
+ 1091 0146 8083      		st Z,r24
+ 1093               	.LM113:
+ 1094 0148 AFE0      		ldi r26,lo8(15)
+ 1095 014a B0E0      		ldi r27,hi8(15)
+ 1096 014c AC0F      		add r26,r28
+ 1097 014e BD1F      		adc r27,r29
+ 1098 0150 A00F      		add r26,r16
+ 1099 0152 B11F      		adc r27,r17
+ 1100 0154 9C2D      		mov r25,r12
+ 1101 0156 9F19      		sub r25,r15
+ 1102 0158 981B      		sub r25,r24
+ 1103 015a E6E1      		ldi r30,lo8(22)
+ 1104 015c F0E0      		ldi r31,hi8(22)
+ 1105 015e EC0F      		add r30,r28
+ 1106 0160 FD1F      		adc r31,r29
+ 1107 0162 E00F      		add r30,r16
+ 1108 0164 F11F      		adc r31,r17
+ 1109 0166 8081      		ld r24,Z
+ 1110 0168 981B      		sub r25,r24
+ 1111 016a 81E0      		ldi r24,lo8(1)
+ 1112 016c FE14      		cp r15,r14
+ 1113 016e 01F4      		brne .L63
+ 1114 0170 80E0      		ldi r24,lo8(0)
+ 1115               	.L63:
+ 1116 0172 981B      		sub r25,r24
+ 1117 0174 9C93      		st X,r25
+ 1118 0176 0F5F      		subi r16,lo8(-(1))
+ 1119 0178 1F4F      		sbci r17,hi8(-(1))
+ 440:main.c        ****     for(n=0;n<7;n++){
+ 1121               	.LM114:
+ 1122 017a 0730      		cpi r16,7
+ 1123 017c 1105      		cpc r17,__zero_reg__
+ 1124 017e 01F0      		breq .L64
+ 1125               	.L61:
+ 442:main.c        ****         for(m=0;m<Nsig[n]-Nint[n];m++){
+ 1127               	.LM115:
+ 1128 0180 F501      		movw r30,r10
+ 1129 0182 F190      		ld r15,Z+
+ 1130 0184 5F01      		movw r10,r30
+ 1131 0186 F401      		movw r30,r8
+ 1132 0188 E190      		ld r14,Z+
+ 1133 018a 4F01      		movw r8,r30
+ 1134 018c 8F2D      		mov r24,r15
+ 1135 018e 90E0      		ldi r25,lo8(0)
+ 1136 0190 8E19      		sub r24,r14
+ 1137 0192 9109      		sbc r25,__zero_reg__
+ 1138 0194 40E0      		ldi r20,lo8(0)
+ 1139 0196 00C0      		rjmp .L65
+ 1140               	.L64:
+ 447:main.c        ****     }
+ 448:main.c        ****     
+ 449:main.c        ****     
+ 450:main.c        **** 	mult_factor[0] = 1;
+ 1142               	.LM116:
+ 1143 0198 81E0      		ldi r24,lo8(1)
+ 1144 019a 90E0      		ldi r25,hi8(1)
+ 1145 019c 9A87      		std Y+10,r25
+ 1146 019e 8987      		std Y+9,r24
+ 451:main.c        **** 	mult_factor[1] = 16;
+ 1148               	.LM117:
+ 1149 01a0 80E1      		ldi r24,lo8(16)
+ 1150 01a2 90E0      		ldi r25,hi8(16)
+ 1151 01a4 9C87      		std Y+12,r25
+ 1152 01a6 8B87      		std Y+11,r24
+ 452:main.c        **** 	mult_factor[2] = 256;
+ 1154               	.LM118:
+ 1155 01a8 80E0      		ldi r24,lo8(256)
+ 1156 01aa 91E0      		ldi r25,hi8(256)
+ 1157 01ac 9E87      		std Y+14,r25
+ 1158 01ae 8D87      		std Y+13,r24
+ 453:main.c        ****     
+ 454:main.c        ****     
+ 455:main.c        **** //    delay_cnt = (unsigned long int)( ( WAIT*1.0 ) * ( (1.0*FOSC)/(1.0*Ndiv2) ) / 256.0 / 1000.0 )
+ 456:main.c        ****     delay_cnt = (unsigned long int)( ( WAIT*1.0 ) * ( (1.0*FOSC)/1000.0/(1.0*Ndiv2) ) / 256.0 );
+ 1160               	.LM119:
+ 1161 01b0 6091 0000 		lds r22,Ndiv2
+ 1162 01b4 7091 0000 		lds r23,Ndiv2+1
+ 1163 01b8 8091 0000 		lds r24,Ndiv2+2
+ 1164 01bc 9091 0000 		lds r25,Ndiv2+3
+ 1165 01c0 00D0      		rcall __floatunsisf
+ 1166 01c2 9B01      		movw r18,r22
+ 1167 01c4 AC01      		movw r20,r24
+ 1168 01c6 60E0      		ldi r22,lo8(0x45fa0000)
+ 1169 01c8 70E0      		ldi r23,hi8(0x45fa0000)
+ 1170 01ca 8AEF      		ldi r24,hlo8(0x45fa0000)
+ 1171 01cc 95E4      		ldi r25,hhi8(0x45fa0000)
+ 1172 01ce 00D0      		rcall __divsf3
+ 1173 01d0 20E0      		ldi r18,lo8(0x43fa0000)
+ 1174 01d2 30E0      		ldi r19,hi8(0x43fa0000)
+ 1175 01d4 4AEF      		ldi r20,hlo8(0x43fa0000)
+ 1176 01d6 53E4      		ldi r21,hhi8(0x43fa0000)
+ 1177 01d8 00D0      		rcall __mulsf3
+ 1178 01da 20E0      		ldi r18,lo8(0x3b800000)
+ 1179 01dc 30E0      		ldi r19,hi8(0x3b800000)
+ 1180 01de 40E8      		ldi r20,hlo8(0x3b800000)
+ 1181 01e0 5BE3      		ldi r21,hhi8(0x3b800000)
+ 1182 01e2 00D0      		rcall __mulsf3
+ 1183 01e4 00D0      		rcall __fixunssfsi
+ 1184 01e6 DC01      		movw r26,r24
+ 1185 01e8 CB01      		movw r24,r22
+ 1186 01ea 9093 0000 		sts delay_cnt+1,r25
+ 1187 01ee 8093 0000 		sts delay_cnt,r24
+ 457:main.c        ****     
+ 458:main.c        **** /*
+ 459:main.c        ****     // opening @ LED array
+ 460:main.c        ****     for(n=0;n<=8;n++){
+ 461:main.c        ****         send_bits_595_LED(0x01 << n);
+ 462:main.c        ****         _delay_ms(60);
+ 463:main.c        ****     }
+ 464:main.c        **** 
+ 465:main.c        ****     // opening @ LCD
+ 466:main.c        **** 	_delay_ms(50);
+ 467:main.c        **** 	lcd_locate(1,0);
+ 468:main.c        **** 	for(n=0;n<LCD_W;n++){
+ 469:main.c        **** 		lcd_set_char(opening_message0[n]);
+ 470:main.c        **** 		_delay_ms(20);
+ 471:main.c        **** 	}
+ 472:main.c        ****     lcd_locate(2,0);
+ 473:main.c        ****     for(n=0;n<LCD_W;n++){
+ 474:main.c        ****         lcd_set_char(opening_message1[n]);
+ 475:main.c        ****         _delay_ms(20);
+ 476:main.c        ****     }
+ 477:main.c        ****     lcd_locate(3,0);
+ 478:main.c        ****     for(n=0;n<LCD_W;n++){
+ 479:main.c        ****         lcd_set_char(opening_message2[n]);
+ 480:main.c        ****         _delay_ms(20);
+ 481:main.c        ****     }
+ 482:main.c        ****     
+ 483:main.c        ****     // opening @ LED array
+ 484:main.c        ****     for(n=0;n<=8;n++){
+ 485:main.c        ****         send_bits_595_LED(~( 0xff << n ));
+ 486:main.c        ****         _delay_ms(30);
+ 487:main.c        ****     }
+ 488:main.c        ****     _delay_ms(250);
+ 489:main.c        ****     for(n=0;n<=8;n++){
+ 490:main.c        ****         send_bits_595_LED( 0xff >> n );
+ 491:main.c        ****         _delay_ms(30);
+ 492:main.c        ****     }
+ 493:main.c        ****     _delay_ms(50);
+ 494:main.c        ****     for(n=0;n<2;n++){
+ 495:main.c        ****         send_bits_595_LED(0xff);
+ 496:main.c        ****         _delay_ms(75);
+ 497:main.c        ****         send_bits_595_LED(0x00);
+ 498:main.c        ****         _delay_ms(75);
+ 499:main.c        ****     }
+ 500:main.c        ****     
+ 501:main.c        ****     // Clear Opening
+ 502:main.c        **** 	for(m=0;m<4;m++){
+ 503:main.c        **** 		lcd_locate(m,0);
+ 504:main.c        **** 		for(n=0;n<LCD_W;n++){
+ 505:main.c        **** 			lcd_set_char(0x20);
+ 506:main.c        **** 			_delay_ms(15);
+ 507:main.c        **** 		}
+ 508:main.c        **** 	}
+ 509:main.c        **** */
+ 510:main.c        ****     
+ 511:main.c        ****     // Initialize data display for Defi Link Tap
+ 512:main.c        ****     for ( index = 0; index < Ndata; index++ ){
+ 513:main.c        ****         data_updated[index] = 1;
+ 1189               	.LM120:
+ 1190 01f2 81E0      		ldi r24,lo8(1)
+ 1191 01f4 8093 0000 		sts data_updated,r24
+ 1192 01f8 8093 0000 		sts data_updated+1,r24
+ 1193 01fc 8093 0000 		sts data_updated+2,r24
+ 1194 0200 8093 0000 		sts data_updated+3,r24
+ 514:main.c        ****     }
+ 515:main.c        ****     
+ 516:main.c        ****     // Enable Interrupt
+ 517:main.c        ****     sei();
+ 1196               	.LM121:
+ 1197               	/* #APP */
+ 1198               	 ;  517 "main.c" 1
+ 1199 0204 7894      		sei
+ 1200               	 ;  0 "" 2
+ 518:main.c        **** 
+ 519:main.c        ****     // Timer Test
+ 520:main.c        ****     DDRC = 0b00000001;
+ 1202               	.LM122:
+ 1203               	/* #NOAPP */
+ 1204 0206 87B9      		out 39-32,r24
+ 521:main.c        ****     PORTC = 0b00000001;
+ 1206               	.LM123:
+ 1207 0208 88B9      		out 40-32,r24
+ 1208               	.L99:
+ 1209               	.LBB2:
+ 522:main.c        ****     // Timer Test
+ 523:main.c        ****     
+ 524:main.c        **** 	////// Main Process start //////
+ 525:main.c        **** 	while(1){
+ 526:main.c        ****         
+ 527:main.c        ****         if(lcd_update){
+ 1211               	.LM124:
+ 1212 020a 8091 0000 		lds r24,lcd_update
+ 1213 020e 8823      		tst r24
+ 1214 0210 01F0      		breq .L66
+ 528:main.c        ****             DisplayItemInfo();
+ 1216               	.LM125:
+ 1217 0212 00D0      		rcall DisplayItemInfo
+ 529:main.c        ****             lcd_locate((chg_index&0x03)>>1,8-(1-chg_index%2));
+ 1219               	.LM126:
+ 1220 0214 2091 0000 		lds r18,chg_index
+ 1221 0218 30E0      		ldi r19,lo8(0)
+ 1222 021a C901      		movw r24,r18
+ 1223 021c 8370      		andi r24,lo8(3)
+ 1224 021e 9070      		andi r25,hi8(3)
+ 1225 0220 9595      		asr r25
+ 1226 0222 8795      		ror r24
+ 1227 0224 20FF      		sbrs r18,0
+ 1228 0226 00C0      		rjmp .L100
+ 1229 0228 68E0      		ldi r22,lo8(8)
+ 1230 022a 00C0      		rjmp .L67
+ 1231               	.L100:
+ 1232 022c 67E0      		ldi r22,lo8(7)
+ 1233               	.L67:
+ 1235               	.LM127:
+ 1236 022e 00D0      		rcall lcd_locate
+ 530:main.c        ****             lcd_update = 0;
+ 1238               	.LM128:
+ 1239 0230 1092 0000 		sts lcd_update,__zero_reg__
+ 1240               	.L66:
+ 1242               	.LM129:
+ 1243 0234 A0E0      		ldi r26,lo8(data_updated)
+ 1244 0236 6A2E      		mov r6,r26
+ 1245 0238 A0E0      		ldi r26,hi8(data_updated)
+ 1246 023a 7A2E      		mov r7,r26
+ 1247 023c CE01      		movw r24,r28
+ 1248 023e 0596      		adiw r24,5
+ 1249 0240 6D96      		adiw r28,91-62
+ 1250 0242 9FAF      		std Y+63,r25
+ 1251 0244 8EAF      		std Y+62,r24
+ 1252 0246 6D97      		sbiw r28,91-62
+ 1253 0248 FE01      		movw r30,r28
+ 1254 024a E95B      		subi r30,lo8(-(71))
+ 1255 024c FF4F      		sbci r31,hi8(-(71))
+ 1256 024e 6B96      		adiw r28,89-62
+ 1257 0250 FFAF      		std Y+63,r31
+ 1258 0252 EEAF      		std Y+62,r30
+ 1259 0254 6B97      		sbiw r28,89-62
+ 1260 0256 B0E0      		ldi r27,lo8(data)
+ 1261 0258 4B2E      		mov r4,r27
+ 1262 025a B0E0      		ldi r27,hi8(data)
+ 1263 025c 5B2E      		mov r5,r27
+ 529:main.c        ****             lcd_locate((chg_index&0x03)>>1,8-(1-chg_index%2));
+ 1265               	.LM130:
+ 1266 025e 1F01      		movw r2,r30
+ 1267 0260 5C01      		movw r10,r24
+ 1268 0262 8824      		clr r8
+ 1269 0264 9924      		clr r9
+ 531:main.c        **** 		}
+ 532:main.c        **** 
+ 533:main.c        ****         ////// Measure Process //////
+ 534:main.c        ****         
+ 535:main.c        ****         //// Defi Link Tap ////
+ 536:main.c        **** 		for ( index = 0; index < Ndata; index++ ){
+ 537:main.c        **** 			
+ 538:main.c        ****             if( data_updated[index] == 1 ){
+ 539:main.c        ****                 data_updated[index] = 0;
+ 540:main.c        ****                 
+ 541:main.c        ****                 // Rx data read
+ 542:main.c        ****                 id = t_id[index];
+ 543:main.c        ****                 
+ 544:main.c        ****                 // Judge data validity
+ 545:main.c        ****                 for( n = 1; n < 4; n++ ){
+ 546:main.c        ****                     if( ( ( (data[index][n] >= '0') & (data[index][n] <= '9') )
+ 547:main.c        ****                          |( (data[index][n] >= 'A') & (data[index][n] <= 'F') ) ) ){
+ 548:main.c        ****                         valid_packet[index] = 1;
+ 549:main.c        ****                     }else{
+ 550:main.c        ****                         valid_packet[index] = 0;
+ 551:main.c        ****                         break;
+ 552:main.c        ****                     }
+ 553:main.c        ****                 }
+ 554:main.c        ****                 // end of judge
+ 555:main.c        ****                 
+ 556:main.c        ****                 if ( valid_packet[index] == 1 ) {
+ 1271               	.LM131:
+ 1272 0266 CE01      		movw r24,r28
+ 1273 0268 0996      		adiw r24,9
+ 1274 026a 6996      		adiw r28,87-62
+ 1275 026c 9FAF      		std Y+63,r25
+ 1276 026e 8EAF      		std Y+62,r24
+ 1277 0270 6997      		sbiw r28,87-62
+ 1278               	.L79:
+ 538:main.c        ****             if( data_updated[index] == 1 ){
+ 1280               	.LM132:
+ 1281 0272 F301      		movw r30,r6
+ 1282 0274 8081      		ld r24,Z
+ 1283 0276 8130      		cpi r24,lo8(1)
+ 1284 0278 01F0      		breq .+2
+ 1285 027a 00C0      		rjmp .L68
+ 539:main.c        ****                 data_updated[index] = 0;
+ 1287               	.LM133:
+ 1288 027c 1082      		st Z,__zero_reg__
+ 270:main.c        **** int main(void)
+ 1290               	.LM134:
+ 1291 027e F401      		movw r30,r8
+ 1292 0280 E050      		subi r30,lo8(-(t_id))
+ 1293 0282 F040      		sbci r31,hi8(-(t_id))
+ 542:main.c        ****                 id = t_id[index];
+ 1295               	.LM135:
+ 1296 0284 0081      		ld r16,Z
+ 1297 0286 80E0      		ldi r24,lo8(0)
+ 1298 0288 90E0      		ldi r25,hi8(0)
+ 1299               	.L73:
+ 270:main.c        **** int main(void)
+ 1301               	.LM136:
+ 1302 028a F201      		movw r30,r4
+ 1303 028c E80F      		add r30,r24
+ 1304 028e F91F      		adc r31,r25
+ 546:main.c        ****                     if( ( ( (data[index][n] >= '0') & (data[index][n] <= '9') )
+ 1306               	.LM137:
+ 1307 0290 2181      		ldd r18,Z+1
+ 547:main.c        ****                          |( (data[index][n] >= 'A') & (data[index][n] <= 'F') ) ) ){
+ 1309               	.LM138:
+ 1310 0292 322F      		mov r19,r18
+ 1311 0294 3154      		subi r19,lo8(-(-65))
+ 1312 0296 3630      		cpi r19,lo8(6)
+ 1313 0298 00F0      		brlo .L102
+ 546:main.c        ****                     if( ( ( (data[index][n] >= '0') & (data[index][n] <= '9') )
+ 1315               	.LM139:
+ 1316 029a 2053      		subi r18,lo8(-(-48))
+ 1317 029c 2A30      		cpi r18,lo8(10)
+ 1318 029e 00F4      		brsh .L111
+ 1319               	.L102:
+ 548:main.c        ****                         valid_packet[index] = 1;
+ 1321               	.LM140:
+ 1322 02a0 21E0      		ldi r18,lo8(1)
+ 1323 02a2 F501      		movw r30,r10
+ 1324 02a4 2083      		st Z,r18
+ 1325 02a6 0196      		adiw r24,1
+ 545:main.c        ****                 for( n = 1; n < 4; n++ ){
+ 1327               	.LM141:
+ 1328 02a8 8330      		cpi r24,3
+ 1329 02aa 9105      		cpc r25,__zero_reg__
+ 1330 02ac 01F4      		brne .L73
+ 1331 02ae 00C0      		rjmp .L74
+ 1332               	.L111:
+ 550:main.c        ****                         valid_packet[index] = 0;
+ 1334               	.LM142:
+ 1335 02b0 F501      		movw r30,r10
+ 1336 02b2 1082      		st Z,__zero_reg__
+ 1337               	.L74:
+ 1339               	.LM143:
+ 1340 02b4 F501      		movw r30,r10
+ 1341 02b6 8081      		ld r24,Z
+ 1342 02b8 8130      		cpi r24,lo8(1)
+ 1343 02ba 01F0      		breq .+2
+ 1344 02bc 00C0      		rjmp .L68
+ 270:main.c        **** int main(void)
+ 1346               	.LM144:
+ 1347 02be 6401      		movw r12,r8
+ 1348 02c0 CC0C      		lsl r12
+ 1349 02c2 DD1C      		rol r13
+ 1350 02c4 CC0C      		lsl r12
+ 1351 02c6 DD1C      		rol r13
+ 1352 02c8 80E0      		ldi r24,lo8(data+1)
+ 1353 02ca 90E0      		ldi r25,hi8(data+1)
+ 1354 02cc C80E      		add r12,r24
+ 1355 02ce D91E      		adc r13,r25
+ 1357               	.LM145:
+ 1358 02d0 DE01      		movw r26,r28
+ 1359 02d2 1296      		adiw r26,2
+ 1360 02d4 BE01      		movw r22,r28
+ 1361 02d6 615F      		subi r22,lo8(-(15))
+ 1362 02d8 7F4F      		sbci r23,hi8(-(15))
+ 270:main.c        **** int main(void)
+ 1364               	.LM146:
+ 1365 02da EE24      		clr r14
+ 1366 02dc FF24      		clr r15
+ 1367               	.L78:
+ 557:main.c        ****                     // Change char to angle-dec
+ 558:main.c        ****                     dec_ang = 0;
+ 559:main.c        ****                     for( n = 1; n < 4; n++){ // data[0] is neglected because of it is control data
+ 560:main.c        ****                         if  ( (data[index][n] & 0xf0) == 0x30 ){
+ 1369               	.LM147:
+ 1370 02de F601      		movw r30,r12
+ 1371 02e0 8191      		ld r24,Z+
+ 1372 02e2 6F01      		movw r12,r30
+ 1373 02e4 282F      		mov r18,r24
+ 1374 02e6 30E0      		ldi r19,lo8(0)
+ 1375 02e8 207F      		andi r18,lo8(240)
+ 1376 02ea 3070      		andi r19,hi8(240)
+ 1377 02ec 2033      		cpi r18,48
+ 1378 02ee 3105      		cpc r19,__zero_reg__
+ 1379 02f0 01F4      		brne .L75
+ 561:main.c        ****                             low4bits[n] = (unsigned int)(data[index][n] & 0x0f);
+ 1381               	.LM148:
+ 1382 02f2 8F70      		andi r24,lo8(15)
+ 1383 02f4 00C0      		rjmp .L112
+ 1384               	.L75:
+ 562:main.c        ****                         }else if ( (data[index][n] & 0xf0) == 0x40 ){
+ 1386               	.LM149:
+ 1387 02f6 2034      		cpi r18,64
+ 1388 02f8 3105      		cpc r19,__zero_reg__
+ 1389 02fa 01F4      		brne .L77
+ 563:main.c        ****                             low4bits[n] = (unsigned int)(data[index][n] & 0x0f) + 9;
+ 1391               	.LM150:
+ 1392 02fc 8F70      		andi r24,lo8(15)
+ 1393 02fe 875F      		subi r24,lo8(-(9))
+ 1394               	.L112:
+ 1395 0300 8C93      		st X,r24
+ 564:main.c        ****                         }else{
+ 565:main.c        ****                             break;
+ 566:main.c        ****                         }
+ 567:main.c        ****                         dec_ang = dec_ang + low4bits[n] * mult_factor[3-n];
+ 1397               	.LM151:
+ 1398 0302 8D91      		ld r24,X+
+ 1399 0304 90E0      		ldi r25,lo8(0)
+ 1400 0306 FB01      		movw r30,r22
+ 1401 0308 3291      		ld r19,-Z
+ 1402 030a 2291      		ld r18,-Z
+ 1403 030c BF01      		movw r22,r30
+ 1404 030e 829F      		mul r24,r18
+ 1405 0310 A001      		movw r20,r0
+ 1406 0312 839F      		mul r24,r19
+ 1407 0314 500D      		add r21,r0
+ 1408 0316 929F      		mul r25,r18
+ 1409 0318 500D      		add r21,r0
+ 1410 031a 1124      		clr r1
+ 1411 031c E40E      		add r14,r20
+ 1412 031e F51E      		adc r15,r21
+ 559:main.c        ****                     for( n = 1; n < 4; n++){ // data[0] is neglected because of it is control data
+ 1414               	.LM152:
+ 1415 0320 6996      		adiw r28,87-62
+ 1416 0322 8EAD      		ldd r24,Y+62
+ 1417 0324 9FAD      		ldd r25,Y+63
+ 1418 0326 6997      		sbiw r28,87-62
+ 1419 0328 E817      		cp r30,r24
+ 1420 032a F907      		cpc r31,r25
+ 1421 032c 01F4      		brne .L78
+ 1422               	.L77:
+ 568:main.c        ****                     }
+ 569:main.c        ****                     // end of Change char to angle-dec
+ 570:main.c        ****                     
+ 571:main.c        ****                     // Change angle-dec to normlized-dec
+ 572:main.c        ****                     dec_nrm = (float)dec_ang / (float)maxv;
+ 573:main.c        ****                     // end of Change angle-dec to normlized-dec
+ 574:main.c        ****                     
+ 575:main.c        ****                     // Change dec to ISO
+ 576:main.c        ****                     value[index] = dec_nrm * eq_grad[id] + eq_intercept[id];
+ 1424               	.LM153:
+ 1425 032e 10E0      		ldi r17,lo8(0)
+ 572:main.c        ****                     dec_nrm = (float)dec_ang / (float)maxv;
+ 1427               	.LM154:
+ 1428 0330 B701      		movw r22,r14
+ 1429 0332 80E0      		ldi r24,lo8(0)
+ 1430 0334 90E0      		ldi r25,hi8(0)
+ 1431 0336 00D0      		rcall __floatunsisf
+ 1432 0338 20E0      		ldi r18,lo8(0x45130000)
+ 1433 033a 30E0      		ldi r19,hi8(0x45130000)
+ 1434 033c 43E1      		ldi r20,hlo8(0x45130000)
+ 1435 033e 55E4      		ldi r21,hhi8(0x45130000)
+ 1436 0340 00D0      		rcall __divsf3
+ 1437 0342 6B01      		movw r12,r22
+ 1438 0344 7C01      		movw r14,r24
+ 1440               	.LM155:
+ 1441 0346 000F      		lsl r16
+ 1442 0348 111F      		rol r17
+ 1443 034a E1E0      		ldi r30,lo8(1)
+ 1444 034c F0E0      		ldi r31,hi8(1)
+ 1445 034e EC0F      		add r30,r28
+ 1446 0350 FD1F      		adc r31,r29
+ 1447 0352 0E0F      		add r16,r30
+ 1448 0354 1F1F      		adc r17,r31
+ 1449 0356 F801      		movw r30,r16
+ 1450 0358 60AD      		ldd r22,Z+56
+ 1451 035a 71AD      		ldd r23,Z+57
+ 1452 035c 80E0      		ldi r24,lo8(0)
+ 1453 035e 90E0      		ldi r25,hi8(0)
+ 1454 0360 00D0      		rcall __floatunsisf
+ 1455 0362 9B01      		movw r18,r22
+ 1456 0364 AC01      		movw r20,r24
+ 1457 0366 C701      		movw r24,r14
+ 1458 0368 B601      		movw r22,r12
+ 1459 036a 00D0      		rcall __mulsf3
+ 1460 036c 6B01      		movw r12,r22
+ 1461 036e 7C01      		movw r14,r24
+ 1462 0370 F801      		movw r30,r16
+ 1463 0372 62A5      		ldd r22,Z+42
+ 1464 0374 73A5      		ldd r23,Z+43
+ 1465 0376 8827      		clr r24
+ 1466 0378 77FD      		sbrc r23,7
+ 1467 037a 8095      		com r24
+ 1468 037c 982F      		mov r25,r24
+ 1469 037e 00D0      		rcall __floatsisf
+ 1470 0380 9B01      		movw r18,r22
+ 1471 0382 AC01      		movw r20,r24
+ 1472 0384 C701      		movw r24,r14
+ 1473 0386 B601      		movw r22,r12
+ 1474 0388 00D0      		rcall __addsf3
+ 1475 038a DC01      		movw r26,r24
+ 1476 038c CB01      		movw r24,r22
+ 1477 038e F101      		movw r30,r2
+ 1478 0390 8083      		st Z,r24
+ 1479 0392 9183      		std Z+1,r25
+ 1480 0394 A283      		std Z+2,r26
+ 1481 0396 B383      		std Z+3,r27
+ 1482               	.L68:
+ 1483 0398 0894      		sec
+ 1484 039a 811C      		adc r8,__zero_reg__
+ 1485 039c 911C      		adc r9,__zero_reg__
+ 1486 039e 0894      		sec
+ 1487 03a0 611C      		adc r6,__zero_reg__
+ 1488 03a2 711C      		adc r7,__zero_reg__
+ 1489 03a4 0894      		sec
+ 1490 03a6 A11C      		adc r10,__zero_reg__
+ 1491 03a8 B11C      		adc r11,__zero_reg__
+ 1492 03aa 84E0      		ldi r24,lo8(4)
+ 1493 03ac 90E0      		ldi r25,hi8(4)
+ 1494 03ae 280E      		add r2,r24
+ 1495 03b0 391E      		adc r3,r25
+ 1496 03b2 480E      		add r4,r24
+ 1497 03b4 591E      		adc r5,r25
+ 536:main.c        **** 		for ( index = 0; index < Ndata; index++ ){
+ 1499               	.LM156:
+ 1500 03b6 94E0      		ldi r25,lo8(4)
+ 1501 03b8 8916      		cp r8,r25
+ 1502 03ba 9104      		cpc r9,__zero_reg__
+ 1503 03bc 01F0      		breq .+2
+ 1504 03be 00C0      		rjmp .L79
+ 577:main.c        ****                     // end of change dec to ISO
+ 578:main.c        ****                 }
+ 579:main.c        **** 
+ 580:main.c        ****             }
+ 581:main.c        **** 		}
+ 582:main.c        ****         
+ 583:main.c        ****         rpm = TachoMeter();
+ 1506               	.LM157:
+ 1507 03c0 00D0      		rcall TachoMeter
+ 1508 03c2 6093 0000 		sts rpm,r22
+ 1509 03c6 7093 0000 		sts rpm+1,r23
+ 1510 03ca 8093 0000 		sts rpm+2,r24
+ 1511 03ce 9093 0000 		sts rpm+3,r25
+ 584:main.c        ****         
+ 585:main.c        **** /*
+ 586:main.c        ****         //debug
+ 587:main.c        ****         if( rpm > 8000 ){
+ 588:main.c        ****             rpm = 0;
+ 589:main.c        ****         }else{
+ 590:main.c        ****             rpm = rpm + 10;
+ 591:main.c        ****         }
+ 592:main.c        ****         //debug
+ 593:main.c        **** */
+ 594:main.c        ****         
+ 595:main.c        ****         // Fuel Pump Driver
+ 596:main.c        ****         OCR0A = FuelPumpDriver(rpm, value[2],value[3]);
+ 1513               	.LM158:
+ 1514 03d2 6396      		adiw r28,79-60
+ 1515 03d4 2CAD      		ldd r18,Y+60
+ 1516 03d6 3DAD      		ldd r19,Y+61
+ 1517 03d8 4EAD      		ldd r20,Y+62
+ 1518 03da 5FAD      		ldd r21,Y+63
+ 1519 03dc 6397      		sbiw r28,79-60
+ 1520 03de 6796      		adiw r28,83-60
+ 1521 03e0 ECAC      		ldd r14,Y+60
+ 1522 03e2 FDAC      		ldd r15,Y+61
+ 1523 03e4 0EAD      		ldd r16,Y+62
+ 1524 03e6 1FAD      		ldd r17,Y+63
+ 1525 03e8 6797      		sbiw r28,83-60
+ 1526 03ea 00D0      		rcall FuelPumpDriver
+ 1527 03ec 87BD      		out 71-32,r24
+ 597:main.c        ****         // value[2] ... Fuel Pressure
+ 598:main.c        ****         // value[3] ... Boost
+ 599:main.c        **** 
+ 600:main.c        ****         
+ 601:main.c        ****         ////// Display Process //////
+ 602:main.c        ****         if(    ( ( (0xffff - timer2_cnt_last) > delay_cnt ) && ( (timer2_cnt - timer2_cnt_last)    
+ 1529               	.LM159:
+ 1530 03ee 2091 0000 		lds r18,timer2_cnt_last
+ 1531 03f2 3091 0000 		lds r19,timer2_cnt_last+1
+ 1532 03f6 B901      		movw r22,r18
+ 1533 03f8 6095      		com r22
+ 1534 03fa 7095      		com r23
+ 1535 03fc 4091 0000 		lds r20,delay_cnt
+ 1536 0400 5091 0000 		lds r21,delay_cnt+1
+ 1537 0404 4617      		cp r20,r22
+ 1538 0406 5707      		cpc r21,r23
+ 1539 0408 00F4      		brsh .L80
+ 1541               	.LM160:
+ 1542 040a 8091 0000 		lds r24,timer2_cnt
+ 1543 040e 9091 0000 		lds r25,timer2_cnt+1
+ 1544 0412 821B      		sub r24,r18
+ 1545 0414 930B      		sbc r25,r19
+ 1546 0416 4817      		cp r20,r24
+ 1547 0418 5907      		cpc r21,r25
+ 1548 041a 00F0      		brlo .L81
+ 1549               	.L80:
+ 603:main.c        ****             || ( ( (0xffff - timer2_cnt_last) < delay_cnt ) && ( (timer2_cnt + (0xffff - timer2_cnt
+ 1551               	.LM161:
+ 1552 041c 6417      		cp r22,r20
+ 1553 041e 7507      		cpc r23,r21
+ 1554 0420 00F0      		brlo .+2
+ 1555 0422 00C0      		rjmp .L82
+ 1557               	.LM162:
+ 1558 0424 8091 0000 		lds r24,timer2_cnt
+ 1559 0428 9091 0000 		lds r25,timer2_cnt+1
+ 1560 042c 860F      		add r24,r22
+ 1561 042e 971F      		adc r25,r23
+ 1562 0430 4817      		cp r20,r24
+ 1563 0432 5907      		cpc r21,r25
+ 1564 0434 00F0      		brlo .+2
+ 1565 0436 00C0      		rjmp .L82
+ 1566               	.L81:
+ 604:main.c        **** 
+ 605:main.c        ****             timer2_cnt_last = timer2_cnt;
+ 1568               	.LM163:
+ 1569 0438 8091 0000 		lds r24,timer2_cnt
+ 1570 043c 9091 0000 		lds r25,timer2_cnt+1
+ 1571 0440 9093 0000 		sts timer2_cnt_last+1,r25
+ 1572 0444 8093 0000 		sts timer2_cnt_last,r24
+ 606:main.c        **** 
+ 607:main.c        ****             // Timer Test
+ 608:main.c        ****             PORTC = ~PORTC;
+ 1574               	.LM164:
+ 1575 0448 88B1      		in r24,40-32
+ 1576 044a 8095      		com r24
+ 1577 044c 88B9      		out 40-32,r24
+ 1578 044e 50E0      		ldi r21,lo8(t_id)
+ 1579 0450 652E      		mov r6,r21
+ 1580 0452 50E0      		ldi r21,hi8(t_id)
+ 1581 0454 752E      		mov r7,r21
+ 609:main.c        ****             // Timer Test
+ 610:main.c        ****             
+ 611:main.c        **** 
+ 612:main.c        ****             //// Defi Link Tap ////
+ 613:main.c        ****             for ( index = 0; index < Ndata; index++ ){
+ 1583               	.LM165:
+ 1584 0456 EE24      		clr r14
+ 614:main.c        ****                 
+ 615:main.c        ****                 // Rx data read
+ 616:main.c        ****                 id = t_id[index];
+ 617:main.c        **** 
+ 618:main.c        ****                 // clear value area of LCD
+ 619:main.c        ****                 lcd_locate(index,RxNameLength[id]);
+ 620:main.c        ****                 for (n=0;n<=(DISP_W-RxNameLength[id])-1;n++) {
+ 1586               	.LM166:
+ 1587 0458 6AE0      		ldi r22,lo8(10)
+ 1588 045a 462E      		mov r4,r22
+ 1589 045c 512C      		mov r5,__zero_reg__
+ 1590               	.L94:
+ 616:main.c        ****                 id = t_id[index];
+ 1592               	.LM167:
+ 1593 045e F301      		movw r30,r6
+ 1594 0460 C190      		ld r12,Z+
+ 1595 0462 3F01      		movw r6,r30
+ 619:main.c        ****                 lcd_locate(index,RxNameLength[id]);
+ 1597               	.LM168:
+ 1598 0464 DD24      		clr r13
+ 1599 0466 8601      		movw r16,r12
+ 1600 0468 0050      		subi r16,lo8(-(RxNameLength))
+ 1601 046a 1040      		sbci r17,hi8(-(RxNameLength))
+ 1602 046c 8E2D      		mov r24,r14
+ 1603 046e F801      		movw r30,r16
+ 1604 0470 6081      		ld r22,Z
+ 1605 0472 00D0      		rcall lcd_locate
+ 1607               	.LM169:
+ 1608 0474 FF24      		clr r15
+ 1609 0476 00C0      		rjmp .L83
+ 1610               	.L84:
+ 621:main.c        ****                     lcd_set_char(' ');
+ 1612               	.LM170:
+ 1613 0478 80E2      		ldi r24,lo8(32)
+ 1614 047a 00D0      		rcall lcd_set_char
+ 620:main.c        ****                 for (n=0;n<=(DISP_W-RxNameLength[id])-1;n++) {
+ 1616               	.LM171:
+ 1617 047c F394      		inc r15
+ 1618               	.L83:
+ 620:main.c        ****                 for (n=0;n<=(DISP_W-RxNameLength[id])-1;n++) {
+ 1620               	.LM172:
+ 1621 047e F801      		movw r30,r16
+ 1622 0480 6081      		ld r22,Z
+ 1623 0482 8F2D      		mov r24,r15
+ 1624 0484 90E0      		ldi r25,lo8(0)
+ 1625 0486 9201      		movw r18,r4
+ 1626 0488 261B      		sub r18,r22
+ 1627 048a 3109      		sbc r19,__zero_reg__
+ 1628 048c 2817      		cp r18,r24
+ 1629 048e 3907      		cpc r19,r25
+ 1630 0490 04F4      		brge .L84
+ 622:main.c        ****                 }
+ 623:main.c        ****                 // end of clear value area
+ 624:main.c        ****                 
+ 625:main.c        ****                 // pad blank area of LCD
+ 626:main.c        ****                 lcd_locate(index,RxNameLength[id]);
+ 1632               	.LM173:
+ 1633 0492 8E2D      		mov r24,r14
+ 1634 0494 00D0      		rcall lcd_locate
+ 627:main.c        ****                 for (n=0;n<Nspace[id];n++){
+ 1636               	.LM174:
+ 1637 0496 FF24      		clr r15
+ 1638 0498 0FE0      		ldi r16,lo8(15)
+ 1639 049a 10E0      		ldi r17,hi8(15)
+ 1640 049c 0C0F      		add r16,r28
+ 1641 049e 1D1F      		adc r17,r29
+ 1642 04a0 0C0D      		add r16,r12
+ 1643 04a2 1D1D      		adc r17,r13
+ 1644 04a4 00C0      		rjmp .L85
+ 1645               	.L86:
+ 628:main.c        ****                     lcd_set_char(' ');
+ 1647               	.LM175:
+ 1648 04a6 80E2      		ldi r24,lo8(32)
+ 1649 04a8 00D0      		rcall lcd_set_char
+ 627:main.c        ****                 for (n=0;n<Nspace[id];n++){
+ 1651               	.LM176:
+ 1652 04aa F394      		inc r15
+ 1653               	.L85:
+ 627:main.c        ****                 for (n=0;n<Nspace[id];n++){
+ 1655               	.LM177:
+ 1656 04ac F801      		movw r30,r16
+ 1657 04ae 8081      		ld r24,Z
+ 1658 04b0 F816      		cp r15,r24
+ 1659 04b2 00F0      		brlo .L86
+ 629:main.c        ****                 }
+ 630:main.c        ****                 // end of pad blank area of LCD
+ 631:main.c        ****                 
+ 632:main.c        ****                 // display value
+ 633:main.c        ****                 if ( valid_packet[index] == 1 ) {
+ 1661               	.LM178:
+ 1662 04b4 6D96      		adiw r28,91-62
+ 1663 04b6 EEAD      		ldd r30,Y+62
+ 1664 04b8 FFAD      		ldd r31,Y+63
+ 1665 04ba 6D97      		sbiw r28,91-62
+ 1666 04bc 8191      		ld r24,Z+
+ 1667 04be 6D96      		adiw r28,91-62
+ 1668 04c0 FFAF      		std Y+63,r31
+ 1669 04c2 EEAF      		std Y+62,r30
+ 1670 04c4 6D97      		sbiw r28,91-62
+ 1671 04c6 8130      		cpi r24,lo8(1)
+ 1672 04c8 01F4      		brne .L87
+ 634:main.c        ****                     lcd_set_numeric(value[index],Nint[id],Nsig[id]-Nint[id],SIGN[id]);
+ 1674               	.LM179:
+ 1675 04ca EDE1      		ldi r30,lo8(29)
+ 1676 04cc F0E0      		ldi r31,hi8(29)
+ 1677 04ce EC0F      		add r30,r28
+ 1678 04d0 FD1F      		adc r31,r29
+ 1679 04d2 EC0D      		add r30,r12
+ 1680 04d4 FD1D      		adc r31,r13
+ 1681 04d6 4081      		ld r20,Z
+ 1682 04d8 6B96      		adiw r28,89-62
+ 1683 04da EEAD      		ldd r30,Y+62
+ 1684 04dc FFAD      		ldd r31,Y+63
+ 1685 04de 6B97      		sbiw r28,89-62
+ 1686 04e0 6081      		ld r22,Z
+ 1687 04e2 7181      		ldd r23,Z+1
+ 1688 04e4 8281      		ldd r24,Z+2
+ 1689 04e6 9381      		ldd r25,Z+3
+ 1690 04e8 E4E2      		ldi r30,lo8(36)
+ 1691 04ea F0E0      		ldi r31,hi8(36)
+ 1692 04ec EC0F      		add r30,r28
+ 1693 04ee FD1F      		adc r31,r29
+ 1694 04f0 EC0D      		add r30,r12
+ 1695 04f2 FD1D      		adc r31,r13
+ 1696 04f4 2081      		ld r18,Z
+ 1697 04f6 30E0      		ldi r19,lo8(0)
+ 1698 04f8 241B      		sub r18,r20
+ 1699 04fa 3109      		sbc r19,__zero_reg__
+ 1700 04fc E6E1      		ldi r30,lo8(22)
+ 1701 04fe F0E0      		ldi r31,hi8(22)
+ 1702 0500 EC0F      		add r30,r28
+ 1703 0502 FD1F      		adc r31,r29
+ 1704 0504 EC0D      		add r30,r12
+ 1705 0506 FD1D      		adc r31,r13
+ 1706 0508 0081      		ld r16,Z
+ 1707 050a 50E0      		ldi r21,lo8(0)
+ 1708 050c 10E0      		ldi r17,lo8(0)
+ 1709 050e 00D0      		rcall lcd_set_numeric
+ 1710 0510 00C0      		rjmp .L88
+ 1711               	.L87:
+ 635:main.c        ****                 }else if( valid_packet[index] == 0 ){
+ 1713               	.LM180:
+ 1714 0512 8823      		tst r24
+ 1715 0514 01F0      		breq .L101
+ 1716 0516 00C0      		rjmp .L88
+ 1717               	.L90:
+ 636:main.c        ****                     for(n=0;n<(Nsig[id]!=Nint[id])+SIGN[id];n++){
+ 637:main.c        ****                         lcd_set_char(' ');
+ 1719               	.LM181:
+ 1720 0518 80E2      		ldi r24,lo8(32)
+ 1721 051a 00D0      		rcall lcd_set_char
+ 636:main.c        ****                     for(n=0;n<(Nsig[id]!=Nint[id])+SIGN[id];n++){
+ 1723               	.LM182:
+ 1724 051c 0F5F      		subi r16,lo8(-(1))
+ 1725 051e 00C0      		rjmp .L89
+ 1726               	.L101:
+ 635:main.c        ****                 }else if( valid_packet[index] == 0 ){
+ 1728               	.LM183:
+ 1729 0520 00E0      		ldi r16,lo8(0)
+ 636:main.c        ****                     for(n=0;n<(Nsig[id]!=Nint[id])+SIGN[id];n++){
+ 1731               	.LM184:
+ 1732 0522 34E2      		ldi r19,lo8(36)
+ 1733 0524 A32E      		mov r10,r19
+ 1734 0526 B12C      		mov r11,__zero_reg__
+ 1735 0528 AC0E      		add r10,r28
+ 1736 052a BD1E      		adc r11,r29
+ 1737 052c AC0C      		add r10,r12
+ 1738 052e BD1C      		adc r11,r13
+ 1739 0530 4DE1      		ldi r20,lo8(29)
+ 1740 0532 842E      		mov r8,r20
+ 1741 0534 912C      		mov r9,__zero_reg__
+ 1742 0536 8C0E      		add r8,r28
+ 1743 0538 9D1E      		adc r9,r29
+ 1744 053a 8C0C      		add r8,r12
+ 1745 053c 9D1C      		adc r9,r13
+ 1746 053e 86E1      		ldi r24,lo8(22)
+ 1747 0540 90E0      		ldi r25,hi8(22)
+ 1748 0542 8C0F      		add r24,r28
+ 1749 0544 9D1F      		adc r25,r29
+ 1750 0546 C80E      		add r12,r24
+ 1751 0548 D91E      		adc r13,r25
+ 1752               	.L89:
+ 636:main.c        ****                     for(n=0;n<(Nsig[id]!=Nint[id])+SIGN[id];n++){
+ 1754               	.LM185:
+ 1755 054a F501      		movw r30,r10
+ 1756 054c F080      		ld r15,Z
+ 1757 054e 202F      		mov r18,r16
+ 1758 0550 30E0      		ldi r19,lo8(0)
+ 1759 0552 81E0      		ldi r24,lo8(1)
+ 1760 0554 90E0      		ldi r25,hi8(1)
+ 1761 0556 F401      		movw r30,r8
+ 1762 0558 4081      		ld r20,Z
+ 1763 055a F416      		cp r15,r20
+ 1764 055c 01F4      		brne .L91
+ 1765 055e 80E0      		ldi r24,lo8(0)
+ 1766 0560 90E0      		ldi r25,hi8(0)
+ 1767               	.L91:
+ 1768 0562 F601      		movw r30,r12
+ 1769 0564 4081      		ld r20,Z
+ 1770 0566 840F      		add r24,r20
+ 1771 0568 911D      		adc r25,__zero_reg__
+ 1772 056a 2817      		cp r18,r24
+ 1773 056c 3907      		cpc r19,r25
+ 1774 056e 04F0      		brlt .L90
+ 636:main.c        ****                     for(n=0;n<(Nsig[id]!=Nint[id])+SIGN[id];n++){
+ 1776               	.LM186:
+ 1777 0570 00E0      		ldi r16,lo8(0)
+ 1778 0572 00C0      		rjmp .L92
+ 1779               	.L93:
+ 638:main.c        ****                     }
+ 639:main.c        ****                     for(n=0;n<Nsig[id];n++){
+ 640:main.c        ****                         lcd_set_char('*');
+ 1781               	.LM187:
+ 1782 0574 8AE2      		ldi r24,lo8(42)
+ 1783 0576 00D0      		rcall lcd_set_char
+ 639:main.c        ****                     for(n=0;n<Nsig[id];n++){
+ 1785               	.LM188:
+ 1786 0578 0F5F      		subi r16,lo8(-(1))
+ 1787               	.L92:
+ 639:main.c        ****                     for(n=0;n<Nsig[id];n++){
+ 1789               	.LM189:
+ 1790 057a 0F15      		cp r16,r15
+ 1791 057c 01F4      		brne .L93
+ 1792               	.L88:
+ 613:main.c        ****             for ( index = 0; index < Ndata; index++ ){
+ 1794               	.LM190:
+ 1795 057e E394      		inc r14
+ 1796 0580 6B96      		adiw r28,89-62
+ 1797 0582 8EAD      		ldd r24,Y+62
+ 1798 0584 9FAD      		ldd r25,Y+63
+ 1799 0586 6B97      		sbiw r28,89-62
+ 1800 0588 0496      		adiw r24,4
+ 1801 058a 6B96      		adiw r28,89-62
+ 1802 058c 9FAF      		std Y+63,r25
+ 1803 058e 8EAF      		std Y+62,r24
+ 1804 0590 6B97      		sbiw r28,89-62
+ 1805 0592 94E0      		ldi r25,lo8(4)
+ 1806 0594 E916      		cp r14,r25
+ 1807 0596 01F0      		breq .+2
+ 1808 0598 00C0      		rjmp .L94
+ 641:main.c        ****                     }
+ 642:main.c        ****                 }
+ 643:main.c        ****                 // end of display value
+ 644:main.c        **** 
+ 645:main.c        ****             }
+ 646:main.c        ****             
+ 647:main.c        **** 
+ 648:main.c        ****             // Display Facemark
+ 649:main.c        ****             lcd_locate(2,13);
+ 1810               	.LM191:
+ 1811 059a 82E0      		ldi r24,lo8(2)
+ 1812 059c 6DE0      		ldi r22,lo8(13)
+ 1813 059e 00D0      		rcall lcd_locate
+ 650:main.c        ****             if((unsigned int)rpm < 3000){
+ 1815               	.LM192:
+ 1816 05a0 8091 0000 		lds r24,rpm
+ 1817 05a4 9091 0000 		lds r25,rpm+1
+ 1818 05a8 EBE0      		ldi r30,hi8(3000)
+ 1819 05aa 883B      		cpi r24,lo8(3000)
+ 1820 05ac 9E07      		cpc r25,r30
+ 1821 05ae 00F4      		brsh .L95
+ 651:main.c        ****                 shobon();
+ 1823               	.LM193:
+ 1824 05b0 00D0      		rcall shobon
+ 1825 05b2 00C0      		rjmp .L96
+ 1826               	.L95:
+ 652:main.c        ****             }else if((unsigned int)rpm < 5000){
+ 1828               	.LM194:
+ 1829 05b4 F3E1      		ldi r31,hi8(5000)
+ 1830 05b6 8838      		cpi r24,lo8(5000)
+ 1831 05b8 9F07      		cpc r25,r31
+ 1832 05ba 00F4      		brsh .L97
+ 653:main.c        ****                 shakin();
+ 1834               	.LM195:
+ 1835 05bc 00D0      		rcall shakin
+ 1836 05be 00C0      		rjmp .L96
+ 1837               	.L97:
+ 654:main.c        ****             }else{
+ 655:main.c        ****                 kuwa();
+ 1839               	.LM196:
+ 1840 05c0 00D0      		rcall kuwa
+ 656:main.c        ****                 lcd_set_str("  ");
+ 1842               	.LM197:
+ 1843 05c2 80E0      		ldi r24,lo8(.LC12)
+ 1844 05c4 90E0      		ldi r25,hi8(.LC12)
+ 1845 05c6 00D0      		rcall lcd_set_str
+ 1846               	.L96:
+ 657:main.c        ****             }
+ 658:main.c        **** 
+ 659:main.c        ****  
+ 660:main.c        ****             // Update Indicator
+ 661:main.c        ****             lcd_locate(2,12);
+ 1848               	.LM198:
+ 1849 05c8 82E0      		ldi r24,lo8(2)
+ 1850 05ca 6CE0      		ldi r22,lo8(12)
+ 1851 05cc 00D0      		rcall lcd_locate
+ 662:main.c        ****             lcd_set_char(0xff);
+ 1853               	.LM199:
+ 1854 05ce 8FEF      		ldi r24,lo8(-1)
+ 1855 05d0 00C0      		rjmp .L113
+ 1856               	.L82:
+ 663:main.c        ****  
+ 664:main.c        ****             
+ 665:main.c        ****         }else{
+ 666:main.c        **** 
+ 667:main.c        ****             // Clear Update Indicator
+ 668:main.c        ****             lcd_locate(2,12);
+ 1858               	.LM200:
+ 1859 05d2 82E0      		ldi r24,lo8(2)
+ 1860 05d4 6CE0      		ldi r22,lo8(12)
+ 1861 05d6 00D0      		rcall lcd_locate
+ 669:main.c        ****             lcd_set_char(' ');
+ 1863               	.LM201:
+ 1864 05d8 80E2      		ldi r24,lo8(32)
+ 1865               	.L113:
+ 1866 05da 00D0      		rcall lcd_set_char
+ 670:main.c        ****             
+ 671:main.c        ****         }
+ 672:main.c        ****         
+ 673:main.c        ****         //// Real-Time Update items
+ 674:main.c        ****         
+ 675:main.c        **** 
+ 676:main.c        ****         // Display RPM
+ 677:main.c        ****         lcd_locate(0,12);
+ 1868               	.LM202:
+ 1869 05dc 80E0      		ldi r24,lo8(0)
+ 1870 05de 6CE0      		ldi r22,lo8(12)
+ 1871 05e0 00D0      		rcall lcd_locate
+ 678:main.c        ****         lcd_set_numeric((unsigned int)rpm,5,0,0);
+ 1873               	.LM203:
+ 1874 05e2 6091 0000 		lds r22,rpm
+ 1875 05e6 7091 0000 		lds r23,rpm+1
+ 1876 05ea 80E0      		ldi r24,lo8(0)
+ 1877 05ec 90E0      		ldi r25,hi8(0)
+ 1878 05ee 00D0      		rcall __floatunsisf
+ 1879 05f0 45E0      		ldi r20,lo8(5)
+ 1880 05f2 50E0      		ldi r21,hi8(5)
+ 1881 05f4 20E0      		ldi r18,lo8(0)
+ 1882 05f6 30E0      		ldi r19,hi8(0)
+ 1883 05f8 00E0      		ldi r16,lo8(0)
+ 1884 05fa 10E0      		ldi r17,hi8(0)
+ 1885 05fc 00D0      		rcall lcd_set_numeric
+ 679:main.c        ****         lcd_set_str("RPM");
+ 1887               	.LM204:
+ 1888 05fe 80E0      		ldi r24,lo8(.LC13)
+ 1889 0600 90E0      		ldi r25,hi8(.LC13)
+ 1890 0602 00D0      		rcall lcd_set_str
+ 680:main.c        ****         
+ 681:main.c        ****         // Display RPM @ Bar Meter
+ 682:main.c        ****         lcd_locate(3,12);
+ 1892               	.LM205:
+ 1893 0604 83E0      		ldi r24,lo8(3)
+ 1894 0606 6CE0      		ldi r22,lo8(12)
+ 1895 0608 00D0      		rcall lcd_locate
+ 683:main.c        ****         BarMeter_disp((unsigned int)rpm);
+ 1897               	.LM206:
+ 1898 060a 8091 0000 		lds r24,rpm
+ 1899 060e 9091 0000 		lds r25,rpm+1
+ 1900 0612 00D0      		rcall BarMeter_disp
+ 1901               	.LBE2:
+ 684:main.c        **** 
+ 685:main.c        ****         
+ 686:main.c        **** 	}
+ 1903               	.LM207:
+ 1904 0614 00C0      		rjmp .L99
+ 1921               	.Lscope11:
+ 1922               	.global	USART_data_index
+ 1923               		.data
+ 1926               	USART_data_index:
+ 1927 006b 6300      		.word	99
+ 1928               		.comm USART_index,2,1
+ 1929               		.comm Ndiv2,4,1
+ 1930               		.comm Ndiv1,4,1
+ 1931               		.comm Ndiv0,4,1
+ 1932               		.comm delay_cnt,2,1
+ 1933               	.global	timer2_cnt_last
+ 1934               	.global	timer2_cnt_last
+ 1935               		.section .bss
+ 1938               	timer2_cnt_last:
+ 1939 0000 0000      		.skip 2,0
+ 1940               		.comm timer2_cnt,2,1
+ 1941               	.global	rpm
+ 1942               	.global	rpm
+ 1945               	rpm:
+ 1946 0002 0000 0000 		.skip 4,0
+ 1947               		.comm data_updated,4,1
+ 1948               		.comm data,16,1
+ 1949               	.global	lcd_update
+ 1950               		.data
+ 1953               	lcd_update:
+ 1954 006d 01        		.byte	1
+ 1955               		.comm RxNameLength,7,1
+ 1956               		.comm RxName_long,14,1
+ 1957               		.comm RxName_short,14,1
+ 1958               		.comm RxName,14,1
+ 1959               		.comm t_id,4,1
+ 1960               	.global	RxID
+ 1963               	RxID:
+ 1964 006e 01        		.byte	1
+ 1965 006f 02        		.byte	2
+ 1966 0070 03        		.byte	3
+ 1967 0071 04        		.byte	4
+ 1968 0072 05        		.byte	5
+ 1969 0073 07        		.byte	7
+ 1970 0074 0F        		.byte	15
+ 1971               	.global	chg_count
+ 1974               	chg_count:
+ 1975 0075 FFFF      		.word	-1
+ 1976               	.global	chg_index
+ 1979               	chg_index:
+ 1980 0077 04        		.byte	4
+ 2001               		.text
+ 2003               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 main.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:107    .text:00000000 set_initial_t_id
+                            *COM*:00000004 t_id
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:143    .text:00000018 __vector_default
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:180    .text:00000032 timer0_init
+                            *COM*:00000004 Ndiv0
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:286    .text:000000b8 timer1_init
+                            *COM*:00000004 Ndiv1
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:395    .text:00000154 timer2_init
+                            *COM*:00000004 Ndiv2
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:517    .text:000001fc __vector_18
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:1963   .data:0000006e RxID
+                            *COM*:00000002 USART_index
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:1926   .data:0000006b USART_data_index
+                            *COM*:00000010 data
+                            *COM*:00000004 data_updated
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:668    .text:000002dc __vector_9
+                            *COM*:00000002 timer2_cnt
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:705    .text:0000030a __vector_7
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:732    .text:0000031e StrLength
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:772    .text:00000334 DisplayItemInfo
+                            *COM*:0000000e RxName
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:874    .text.startup:00000000 main
+                            *COM*:00000007 RxNameLength
+                            *COM*:00000002 delay_cnt
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:1953   .data:0000006d lcd_update
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:1979   .data:00000077 chg_index
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:1945   .bss:00000002 rpm
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:1938   .bss:00000000 timer2_cnt_last
+                            *COM*:0000000e RxName_long
+                            *COM*:0000000e RxName_short
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccEoXmRB.s:1974   .data:00000075 chg_count
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+lcd_locate
+lcd_set_str
+USART_receive_woTO
+SoftSPI_Init
+SoftSPI_LED_Init
+lcd_init
+USARTinit
+ExtInterrupt_init
+tictoc_init
+TachoMeter_init
+BarMeter_init
+FaceMark_init
+__floatunsisf
+__divsf3
+__mulsf3
+__fixunssfsi
+__floatsisf
+__addsf3
+TachoMeter
+FuelPumpDriver
+lcd_set_char
+lcd_set_numeric
+shobon
+shakin
+kuwa
+BarMeter_disp

@@ -1,0 +1,165 @@
+   1               		.file	"ledarray_595_softspi.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	SoftSPI_LED_Init
+ 107               	SoftSPI_LED_Init:
+   1:ledarray_595_softspi.c **** // LCD Control Functions
+   2:ledarray_595_softspi.c **** // Target : ATMEGA88 (ATMEGA168)
+   3:ledarray_595_softspi.c **** // Clock  : 1MHz (Fuse : CKDIV8 = 0, Fullswing crystal)
+   4:ledarray_595_softspi.c **** //
+   5:ledarray_595_softspi.c **** 
+   6:ledarray_595_softspi.c **** #include <avr/io.h>
+   7:ledarray_595_softspi.c **** #include <util/delay.h>
+   8:ledarray_595_softspi.c **** #include <avr/interrupt.h>
+   9:ledarray_595_softspi.c **** #include "lcd_595_softspi.h"
+  10:ledarray_595_softspi.c **** 
+  11:ledarray_595_softspi.c **** // SPI port Dfinition
+  12:ledarray_595_softspi.c **** #define DDR_SPI         DDRB
+  13:ledarray_595_softspi.c **** #define PORT_SPI        PORTB
+  14:ledarray_595_softspi.c **** #define DD_MOSI         PB3
+  15:ledarray_595_softspi.c **** #define DD_SCK          PB4
+  16:ledarray_595_softspi.c **** #define DD_RCK          PB5
+  17:ledarray_595_softspi.c **** 
+  18:ledarray_595_softspi.c **** unsigned char E;
+  19:ledarray_595_softspi.c **** unsigned char RS;
+  20:ledarray_595_softspi.c **** unsigned char DATA;
+  21:ledarray_595_softspi.c **** 
+  22:ledarray_595_softspi.c **** void SoftSPI_LED_Init(void){
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111               	/* prologue: function */
+ 112               	/* frame size = 0 */
+ 113               	/* stack size = 0 */
+ 114               	.L__stack_usage = 0
+  23:ledarray_595_softspi.c ****     /*MOSI,SCK=出力、他は入力に設定 */
+  24:ledarray_595_softspi.c ****     DDR_SPI |= (1<<DD_MOSI)|(1<<DD_SCK)|(1<<DD_RCK);
+ 116               	.LM1:
+ 117 0000 84B1      		in r24,36-32
+ 118 0002 8863      		ori r24,lo8(56)
+ 119 0004 84B9      		out 36-32,r24
+ 120               	/* epilogue start */
+  25:ledarray_595_softspi.c **** }
+ 122               	.LM2:
+ 123 0006 0895      		ret
+ 125               	.Lscope1:
+ 128               	.global	SoftSPI_LED_TX
+ 130               	SoftSPI_LED_TX:
+  26:ledarray_595_softspi.c **** 
+  27:ledarray_595_softspi.c **** void SoftSPI_LED_TX(unsigned char cData){
+ 132               	.LM3:
+ 133               	.LFBB2:
+ 134               	/* prologue: function */
+ 135               	/* frame size = 0 */
+ 136               	/* stack size = 0 */
+ 137               	.L__stack_usage = 0
+ 139               	.LM4:
+ 140 0008 27E0      		ldi r18,lo8(7)
+ 141 000a 30E0      		ldi r19,hi8(7)
+  28:ledarray_595_softspi.c ****     unsigned int n;
+  29:ledarray_595_softspi.c ****     for(n=0;n<8;n++){
+  30:ledarray_595_softspi.c ****         PORT_SPI &= ~(1<<DD_SCK);               // Set SCK "L"
+  31:ledarray_595_softspi.c ****         PORT_SPI &= ~(1<<DD_MOSI);              // Initialize Data Port
+  32:ledarray_595_softspi.c ****         PORT_SPI |= (0x01&(cData>>(7-n)))<<DD_MOSI; // Set Data bit
+ 143               	.LM5:
+ 144 000c 90E0      		ldi r25,lo8(0)
+ 145               	.L3:
+  30:ledarray_595_softspi.c ****         PORT_SPI &= ~(1<<DD_SCK);               // Set SCK "L"
+ 147               	.LM6:
+ 148 000e 2C98      		cbi 37-32,4
+  31:ledarray_595_softspi.c ****         PORT_SPI &= ~(1<<DD_MOSI);              // Initialize Data Port
+ 150               	.LM7:
+ 151 0010 2B98      		cbi 37-32,3
+ 153               	.LM8:
+ 154 0012 65B1      		in r22,37-32
+ 155 0014 AC01      		movw r20,r24
+ 156 0016 022E      		mov r0,r18
+ 157 0018 00C0      		rjmp 2f
+ 158 001a 5595      	1:	asr r21
+ 159 001c 4795      		ror r20
+ 160 001e 0A94      	2:	dec r0
+ 161 0020 02F4      		brpl 1b
+ 162 0022 4170      		andi r20,lo8(1)
+ 163 0024 5070      		andi r21,hi8(1)
+ 164 0026 73E0      		ldi r23,3
+ 165 0028 440F      	1:	lsl r20
+ 166 002a 551F      		rol r21
+ 167 002c 7A95      		dec r23
+ 168 002e 01F4      		brne 1b
+ 169 0030 642B      		or r22,r20
+ 170 0032 65B9      		out 37-32,r22
+  33:ledarray_595_softspi.c ****         PORT_SPI |= (1<<DD_SCK);                // Set SCK "H"
+ 172               	.LM9:
+ 173 0034 2C9A      		sbi 37-32,4
+ 174 0036 2150      		subi r18,lo8(-(-1))
+ 175 0038 3040      		sbci r19,hi8(-(-1))
+  29:ledarray_595_softspi.c ****     for(n=0;n<8;n++){
+ 177               	.LM10:
+ 178 003a 4FEF      		ldi r20,hi8(-1)
+ 179 003c 2F3F      		cpi r18,lo8(-1)
+ 180 003e 3407      		cpc r19,r20
+ 181 0040 01F4      		brne .L3
+ 182               	/* epilogue start */
+  34:ledarray_595_softspi.c ****     }
+  35:ledarray_595_softspi.c **** }
+ 184               	.LM11:
+ 185 0042 0895      		ret
+ 187               	.Lscope2:
+ 190               	.global	send_bits_595_LED
+ 192               	send_bits_595_LED:
+  36:ledarray_595_softspi.c **** 
+  37:ledarray_595_softspi.c **** void send_bits_595_LED(unsigned char DATA){
+ 194               	.LM12:
+ 195               	.LFBB3:
+ 196               	/* prologue: function */
+ 197               	/* frame size = 0 */
+ 198               	/* stack size = 0 */
+ 199               	.L__stack_usage = 0
+  38:ledarray_595_softspi.c ****     unsigned char bits;
+  39:ledarray_595_softspi.c ****     bits = DATA;
+  40:ledarray_595_softspi.c ****     SoftSPI_LED_TX(bits);
+ 201               	.LM13:
+ 202 0044 00D0      		rcall SoftSPI_LED_TX
+  41:ledarray_595_softspi.c ****     PORT_SPI &= ~(1<<DD_RCK);   // Set RCK "L"
+ 204               	.LM14:
+ 205 0046 2D98      		cbi 37-32,5
+  42:ledarray_595_softspi.c ****     PORT_SPI |=  (1<<DD_RCK);   // Set RCK "H"
+ 207               	.LM15:
+ 208 0048 2D9A      		sbi 37-32,5
+  43:ledarray_595_softspi.c ****     PORT_SPI &= ~(1<<DD_RCK);   // Set RCK "L"
+ 210               	.LM16:
+ 211 004a 2D98      		cbi 37-32,5
+ 212               	/* epilogue start */
+  44:ledarray_595_softspi.c **** }
+ 214               	.LM17:
+ 215 004c 0895      		ret
+ 217               	.Lscope3:
+ 218               		.comm DATA,1,1
+ 219               		.comm RS,1,1
+ 220               		.comm E,1,1
+ 225               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 ledarray_595_softspi.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:107    .text:00000000 SoftSPI_LED_Init
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:130    .text:00000008 SoftSPI_LED_TX
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc3td9Ib.s:192    .text:00000044 send_bits_595_LED
+                            *COM*:00000001 DATA
+                            *COM*:00000001 RS
+                            *COM*:00000001 E
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss

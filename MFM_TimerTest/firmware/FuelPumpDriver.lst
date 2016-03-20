@@ -1,0 +1,91 @@
+   1               		.file	"FuelPumpDriver.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+  65               	.global	FuelPumpDriver
+  67               	FuelPumpDriver:
+   1:FuelPumpDriver.c **** //
+   2:FuelPumpDriver.c **** //  FuelPumpDriver.c
+   3:FuelPumpDriver.c **** //  MFM_rev6
+   4:FuelPumpDriver.c **** //
+   5:FuelPumpDriver.c **** //  Created by imashio on 11/26/14.
+   6:FuelPumpDriver.c **** //
+   7:FuelPumpDriver.c **** //
+   8:FuelPumpDriver.c **** 
+   9:FuelPumpDriver.c **** #include "FuelPumpDriver.h"
+  10:FuelPumpDriver.c **** 
+  11:FuelPumpDriver.c **** unsigned int FuelPumpDriver(unsigned long int rpm, float fuel_press, float boost){
+  69               	.LM0:
+  70               	.LFBB1:
+  71               	/* prologue: function */
+  72               	/* frame size = 0 */
+  73               	/* stack size = 0 */
+  74               	.L__stack_usage = 0
+  75 0000 DC01      		movw r26,r24
+  76 0002 CB01      		movw r24,r22
+  12:FuelPumpDriver.c ****     unsigned long int    FPD_COMP;
+  13:FuelPumpDriver.c ****     
+  14:FuelPumpDriver.c ****     if( rpm < 3000 ){
+  78               	.LM1:
+  79 0004 883B      		cpi r24,lo8(3000)
+  80 0006 2BE0      		ldi r18,hi8(3000)
+  81 0008 9207      		cpc r25,r18
+  82 000a 20E0      		ldi r18,hlo8(3000)
+  83 000c A207      		cpc r26,r18
+  84 000e 20E0      		ldi r18,hhi8(3000)
+  85 0010 B207      		cpc r27,r18
+  86 0012 00F4      		brsh .L3
+  15:FuelPumpDriver.c ****         FPD_COMP = rpm / 3000 * 0xff;
+  16:FuelPumpDriver.c ****     }else{
+  17:FuelPumpDriver.c ****         FPD_COMP = 0xff;
+  18:FuelPumpDriver.c ****     }
+  19:FuelPumpDriver.c ****     
+  20:FuelPumpDriver.c ****     // truncate
+  21:FuelPumpDriver.c ****     if( FPD_COMP < 0x7f ){
+  22:FuelPumpDriver.c ****         FPD_COMP = 0x7f;
+  88               	.LM2:
+  89 0014 4FE7      		ldi r20,lo8(127)
+  90 0016 50E0      		ldi r21,hi8(127)
+  91 0018 60E0      		ldi r22,hlo8(127)
+  92 001a 70E0      		ldi r23,hhi8(127)
+  93 001c 00C0      		rjmp .L2
+  94               	.L3:
+  17:FuelPumpDriver.c ****         FPD_COMP = 0xff;
+  96               	.LM3:
+  97 001e 4FEF      		ldi r20,lo8(255)
+  98 0020 50E0      		ldi r21,hi8(255)
+  99 0022 60E0      		ldi r22,hlo8(255)
+ 100 0024 70E0      		ldi r23,hhi8(255)
+ 101               	.L2:
+  23:FuelPumpDriver.c ****     }else if( FPD_COMP > 0xff ){
+  24:FuelPumpDriver.c ****         FPD_COMP = 0xff;
+  25:FuelPumpDriver.c ****     }
+  26:FuelPumpDriver.c ****     
+  27:FuelPumpDriver.c ****     return (unsigned int)FPD_COMP;
+  28:FuelPumpDriver.c **** }
+ 103               	.LM4:
+ 104 0026 CA01      		movw r24,r20
+ 105               	/* epilogue start */
+ 106 0028 0895      		ret
+ 111               	.Lscope1:
+ 113               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 FuelPumpDriver.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccZEwwEU.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccZEwwEU.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccZEwwEU.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccZEwwEU.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccZEwwEU.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccZEwwEU.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccZEwwEU.s:67     .text:00000000 FuelPumpDriver
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss

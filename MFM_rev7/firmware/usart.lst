@@ -1,0 +1,544 @@
+   1               		.file	"usart.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	USARTinit
+ 107               	USARTinit:
+   1:usart.c       **** // USART transmission Functions
+   2:usart.c       **** 
+   3:usart.c       **** #include <avr/io.h>
+   4:usart.c       **** #include <avr/delay.h>
+   5:usart.c       **** #include "usart.h"
+   6:usart.c       **** #define USART_STATUS UCSR0A
+   7:usart.c       **** 
+   8:usart.c       **** /*
+   9:usart.c       **** -- You should define variables in your source code --
+  10:usart.c       **** #define FOSC 8000000 // Clock Speed 
+  11:usart.c       **** #define BAUD   19200 
+  12:usart.c       **** #define UBRR FOSC/16/BAUD-1 
+  13:usart.c       **** */
+  14:usart.c       **** 
+  15:usart.c       **** // USART initialize
+  16:usart.c       **** void USARTinit(unsigned int ubrr){
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111               	/* prologue: function */
+ 112               	/* frame size = 0 */
+ 113               	/* stack size = 0 */
+ 114               	.L__stack_usage = 0
+  17:usart.c       **** 	UBRR0H = (unsigned char)(ubrr>>8);
+ 116               	.LM1:
+ 117 0000 9093 C500 		sts 197,r25
+  18:usart.c       **** 	UBRR0L = (unsigned char)ubrr;
+ 119               	.LM2:
+ 120 0004 8093 C400 		sts 196,r24
+  19:usart.c       **** 	
+  20:usart.c       **** 	unsigned int Mode= 0b00;	// USART mode select
+  21:usart.c       **** 								//   '00' : Asynchronous
+  22:usart.c       **** 								//   '01' : Synchronous
+  23:usart.c       **** 	unsigned int Pari= 0b10;	// Parity mode select
+  24:usart.c       **** 								//   '00': No parity
+  25:usart.c       **** 								//   '10': Even parity
+  26:usart.c       **** 								//   '11': Odd parity
+  27:usart.c       **** 	unsigned int STPB= 0b0;		// Stop bit length
+  28:usart.c       **** 								//   '0' : 1-bit
+  29:usart.c       **** 								//   '1' : 2-bit
+  30:usart.c       **** 	unsigned int CLKE= 0b0;		// Clock edge for sampling
+  31:usart.c       **** 								//  *This bit must be set '0' in Asynchronous mode 
+  32:usart.c       **** 								//   '0' : Negative 
+  33:usart.c       **** 								//   '1' : Positive
+  34:usart.c       **** 	unsigned int RCIE= 0b1;		// Receive complete interuput enable
+  35:usart.c       **** 	unsigned int TCIE= 0b0;		// Transmit complete interuput enable
+  36:usart.c       **** 	unsigned int TRIE= 0b0;		// Transmit Data register empty interrupt enable
+  37:usart.c       **** 	unsigned int RE  = 0b1;		// Receive enable
+  38:usart.c       **** 	unsigned int TE  = 0b1;		// Transmit enable
+  39:usart.c       **** 	unsigned int Nb  = 0b011;	// Number of bit per packet
+  40:usart.c       **** 								//   '000' : 5bit
+  41:usart.c       **** 								//   '001' : 6bit
+  42:usart.c       **** 								//   '010' : 7bit
+  43:usart.c       **** 								//   '011' : 8bit
+  44:usart.c       **** 	unsigned int U2X = 0;		// Over clocking operation
+  45:usart.c       **** 	UCSR0B = (RCIE<<7)|(TCIE<<6)|(TRIE<<5)|(RE<<4)|(TE<<3)|((Nb>>2)<<2);
+ 122               	.LM3:
+ 123 0008 88E9      		ldi r24,lo8(-104)
+ 124 000a 8093 C100 		sts 193,r24
+  46:usart.c       **** 	UCSR0C = (Mode<<6)|(Pari<<4)|(STPB<<3)|(Nb<<1)|(CLKE);
+ 126               	.LM4:
+ 127 000e 86E2      		ldi r24,lo8(38)
+ 128 0010 8093 C200 		sts 194,r24
+  47:usart.c       **** 	UCSR0A = U2X<<1;
+ 130               	.LM5:
+ 131 0014 1092 C000 		sts 192,__zero_reg__
+ 132               	/* epilogue start */
+  48:usart.c       **** }
+ 134               	.LM6:
+ 135 0018 0895      		ret
+ 137               	.Lscope1:
+ 140               	.global	USART_transmit
+ 142               	USART_transmit:
+  49:usart.c       **** 
+  50:usart.c       **** // USART transmit
+  51:usart.c       **** void USART_transmit(unsigned char data){
+ 144               	.LM7:
+ 145               	.LFBB2:
+ 146               	/* prologue: function */
+ 147               	/* frame size = 0 */
+ 148               	/* stack size = 0 */
+ 149               	.L__stack_usage = 0
+ 150               	.L3:
+  52:usart.c       **** 	while(!(USART_STATUS & (1<<UDRE0)));	// Wait until tx buffer is empty
+ 152               	.LM8:
+ 153 001a 9091 C000 		lds r25,192
+ 154 001e 95FF      		sbrs r25,5
+ 155 0020 00C0      		rjmp .L3
+  53:usart.c       **** 	UDR0 = data;
+ 157               	.LM9:
+ 158 0022 8093 C600 		sts 198,r24
+ 159               	/* epilogue start */
+  54:usart.c       **** }
+ 161               	.LM10:
+ 162 0026 0895      		ret
+ 164               	.Lscope2:
+ 166               	.global	USART_transmit_str
+ 168               	USART_transmit_str:
+  55:usart.c       **** 
+  56:usart.c       **** void USART_transmit_str(unsigned char *s){
+ 170               	.LM11:
+ 171               	.LFBB3:
+ 172 0028 CF93      		push r28
+ 173 002a DF93      		push r29
+ 174               	/* prologue: function */
+ 175               	/* frame size = 0 */
+ 176               	/* stack size = 2 */
+ 177               	.L__stack_usage = 2
+ 179               	.LM12:
+ 180 002c EC01      		movw r28,r24
+  57:usart.c       ****     while (*s != 0) {
+ 182               	.LM13:
+ 183 002e 00C0      		rjmp .L6
+ 184               	.L7:
+  58:usart.c       ****         USART_transmit(*s);
+ 186               	.LM14:
+ 187 0030 00D0      		rcall USART_transmit
+ 188               	.L6:
+  57:usart.c       ****     while (*s != 0) {
+ 190               	.LM15:
+ 191 0032 8991      		ld r24,Y+
+ 192 0034 8823      		tst r24
+ 193 0036 01F4      		brne .L7
+ 194               	/* epilogue start */
+  59:usart.c       ****         s++;
+  60:usart.c       ****     } 
+  61:usart.c       **** }
+ 196               	.LM16:
+ 197 0038 DF91      		pop r29
+ 198 003a CF91      		pop r28
+ 199 003c 0895      		ret
+ 201               	.Lscope3:
+ 207               	.global	USART_transmit_numeric
+ 209               	USART_transmit_numeric:
+  62:usart.c       **** 
+  63:usart.c       **** void USART_transmit_numeric(float num, unsigned int Nint, unsigned int Nfrac, unsigned int sign){
+ 211               	.LM17:
+ 212               	.LFBB4:
+ 213 003e 2F92      		push r2
+ 214 0040 3F92      		push r3
+ 215 0042 4F92      		push r4
+ 216 0044 5F92      		push r5
+ 217 0046 6F92      		push r6
+ 218 0048 7F92      		push r7
+ 219 004a 8F92      		push r8
+ 220 004c 9F92      		push r9
+ 221 004e AF92      		push r10
+ 222 0050 BF92      		push r11
+ 223 0052 CF92      		push r12
+ 224 0054 DF92      		push r13
+ 225 0056 EF92      		push r14
+ 226 0058 FF92      		push r15
+ 227 005a 0F93      		push r16
+ 228 005c 1F93      		push r17
+ 229 005e CF93      		push r28
+ 230 0060 DF93      		push r29
+ 231 0062 CDB7      		in r28,__SP_L__
+ 232 0064 DEB7      		in r29,__SP_H__
+ 233 0066 2897      		sbiw r28,8
+ 234 0068 0FB6      		in __tmp_reg__,__SREG__
+ 235 006a F894      		cli
+ 236 006c DEBF      		out __SP_H__,r29
+ 237 006e 0FBE      		out __SREG__,__tmp_reg__
+ 238 0070 CDBF      		out __SP_L__,r28
+ 239               	/* prologue: function */
+ 240               	/* frame size = 8 */
+ 241               	/* stack size = 26 */
+ 242               	.L__stack_usage = 26
+ 243 0072 6B01      		movw r12,r22
+ 244 0074 7C01      		movw r14,r24
+ 245 0076 1A01      		movw r2,r20
+ 246 0078 2901      		movw r4,r18
+  64:usart.c       ****     unsigned long int DivFactor = 1;
+  65:usart.c       ****     unsigned int n, m;
+  66:usart.c       ****     unsigned int d[10];
+  67:usart.c       ****     unsigned int valid = 0;
+  68:usart.c       ****     
+  69:usart.c       ****     for(n=0;n<Nfrac;n++){
+ 248               	.LM18:
+ 249 007a 80E0      		ldi r24,lo8(0)
+ 250 007c 90E0      		ldi r25,hi8(0)
+ 251 007e 4C01      		movw r8,r24
+ 252 0080 00C0      		rjmp .L9
+ 253               	.L10:
+  70:usart.c       ****         num = num * 10;
+ 255               	.LM19:
+ 256 0082 C701      		movw r24,r14
+ 257 0084 B601      		movw r22,r12
+ 258 0086 20E0      		ldi r18,lo8(0x41200000)
+ 259 0088 30E0      		ldi r19,hi8(0x41200000)
+ 260 008a 40E2      		ldi r20,hlo8(0x41200000)
+ 261 008c 51E4      		ldi r21,hhi8(0x41200000)
+ 262 008e 00D0      		rcall __mulsf3
+ 263 0090 C62E      		mov r12,r22
+ 264 0092 D72E      		mov r13,r23
+ 265 0094 E82E      		mov r14,r24
+ 266 0096 F92E      		mov r15,r25
+  69:usart.c       ****     for(n=0;n<Nfrac;n++){
+ 268               	.LM20:
+ 269 0098 0894      		sec
+ 270 009a 811C      		adc r8,__zero_reg__
+ 271 009c 911C      		adc r9,__zero_reg__
+ 272               	.L9:
+  69:usart.c       ****     for(n=0;n<Nfrac;n++){
+ 274               	.LM21:
+ 275 009e 8414      		cp r8,r4
+ 276 00a0 9504      		cpc r9,r5
+ 277 00a2 01F4      		brne .L10
+  71:usart.c       ****     }
+  72:usart.c       ****     
+  73:usart.c       ****     // Detect sign
+  74:usart.c       ****     if( sign == 1){
+ 279               	.LM22:
+ 280 00a4 0130      		cpi r16,1
+ 281 00a6 1105      		cpc r17,__zero_reg__
+ 282 00a8 01F4      		brne .L11
+  75:usart.c       ****         if( num < 0 ){
+ 284               	.LM23:
+ 285 00aa C701      		movw r24,r14
+ 286 00ac B601      		movw r22,r12
+ 287 00ae 20E0      		ldi r18,lo8(0x0)
+ 288 00b0 30E0      		ldi r19,hi8(0x0)
+ 289 00b2 A901      		movw r20,r18
+ 290 00b4 00D0      		rcall __ltsf2
+ 291 00b6 87FF      		sbrs r24,7
+ 292 00b8 00C0      		rjmp .L29
+  76:usart.c       ****             USART_transmit('-');
+ 294               	.LM24:
+ 295 00ba 8DE2      		ldi r24,lo8(45)
+ 296 00bc 00D0      		rcall USART_transmit
+  77:usart.c       ****             num = -num;
+ 298               	.LM25:
+ 299 00be F7FA      		bst r15,7
+ 300 00c0 F094      		com r15
+ 301 00c2 F7F8      		bld r15,7
+ 302 00c4 F094      		com r15
+ 303               	.L11:
+  78:usart.c       ****         }else{
+  79:usart.c       ****             USART_transmit('+');
+  80:usart.c       ****         }
+  81:usart.c       ****     }
+  82:usart.c       ****     // end of
+  83:usart.c       **** 				
+  84:usart.c       ****     for(n=0;n<=Nint+Nfrac-1;n++){
+  85:usart.c       ****         
+  86:usart.c       ****         if( ( n== Nint ) && ( Nfrac!=0 )){
+  87:usart.c       ****             USART_transmit('.');
+  88:usart.c       ****         }
+  89:usart.c       ****         
+  90:usart.c       ****         DivFactor = 1;
+  91:usart.c       ****         for(m=n+1;m<Nint+Nfrac;m++){
+  92:usart.c       ****             DivFactor = DivFactor * 10;
+  93:usart.c       ****         }
+  94:usart.c       ****         
+  95:usart.c       ****         d[n] = (unsigned int)( num / DivFactor );
+  96:usart.c       ****         if( (valid == 0) && ( d[n]!=0 || n==Nint-1) ) valid = 1;
+ 305               	.LM26:
+ 306 00c6 00E0      		ldi r16,lo8(0)
+ 307 00c8 10E0      		ldi r17,hi8(0)
+ 308 00ca 6624      		clr r6
+ 309 00cc 7724      		clr r7
+  84:usart.c       ****     for(n=0;n<=Nint+Nfrac-1;n++){
+ 311               	.LM27:
+ 312 00ce 9201      		movw r18,r4
+ 313 00d0 220D      		add r18,r2
+ 314 00d2 331D      		adc r19,r3
+ 315 00d4 3A83      		std Y+2,r19
+ 316 00d6 2983      		std Y+1,r18
+ 317 00d8 2150      		subi r18,lo8(-(-1))
+ 318 00da 3040      		sbci r19,hi8(-(-1))
+ 319 00dc 3C83      		std Y+4,r19
+ 320 00de 2B83      		std Y+3,r18
+ 322               	.LM28:
+ 323 00e0 C101      		movw r24,r2
+ 324 00e2 0197      		sbiw r24,1
+ 325 00e4 9E83      		std Y+6,r25
+ 326 00e6 8D83      		std Y+5,r24
+ 327 00e8 7886      		std Y+8,r7
+ 328 00ea 6F82      		std Y+7,r6
+ 329 00ec 00C0      		rjmp .L14
+ 330               	.L29:
+  79:usart.c       ****             USART_transmit('+');
+ 332               	.LM29:
+ 333 00ee 8BE2      		ldi r24,lo8(43)
+ 334 00f0 00D0      		rcall USART_transmit
+ 335 00f2 00C0      		rjmp .L11
+ 336               	.L24:
+  86:usart.c       ****         if( ( n== Nint ) && ( Nfrac!=0 )){
+ 338               	.LM30:
+ 339 00f4 0215      		cp r16,r2
+ 340 00f6 1305      		cpc r17,r3
+ 341 00f8 01F4      		brne .L15
+  86:usart.c       ****         if( ( n== Nint ) && ( Nfrac!=0 )){
+ 343               	.LM31:
+ 344 00fa 4114      		cp r4,__zero_reg__
+ 345 00fc 5104      		cpc r5,__zero_reg__
+ 346 00fe 01F0      		breq .L15
+  87:usart.c       ****             USART_transmit('.');
+ 348               	.LM32:
+ 349 0100 8EE2      		ldi r24,lo8(46)
+ 350 0102 00D0      		rcall USART_transmit
+ 351               	.L15:
+  91:usart.c       ****         for(m=n+1;m<Nint+Nfrac;m++){
+ 353               	.LM33:
+ 354 0104 3801      		movw r6,r16
+  90:usart.c       ****         DivFactor = 1;
+ 356               	.LM34:
+ 357 0106 81E0      		ldi r24,lo8(1)
+ 358 0108 882E      		mov r8,r24
+ 359 010a 912C      		mov r9,__zero_reg__
+ 360 010c A12C      		mov r10,__zero_reg__
+ 361 010e B12C      		mov r11,__zero_reg__
+ 362 0110 C501      		movw r24,r10
+ 363 0112 B401      		movw r22,r8
+  91:usart.c       ****         for(m=n+1;m<Nint+Nfrac;m++){
+ 365               	.LM35:
+ 366 0114 00C0      		rjmp .L16
+ 367               	.L17:
+  92:usart.c       ****             DivFactor = DivFactor * 10;
+ 369               	.LM36:
+ 370 0116 2AE0      		ldi r18,lo8(10)
+ 371 0118 30E0      		ldi r19,hi8(10)
+ 372 011a 40E0      		ldi r20,hlo8(10)
+ 373 011c 50E0      		ldi r21,hhi8(10)
+ 374 011e 00D0      		rcall __mulsi3
+ 375               	.L16:
+  92:usart.c       ****             DivFactor = DivFactor * 10;
+ 377               	.LM37:
+ 378 0120 0894      		sec
+ 379 0122 611C      		adc r6,__zero_reg__
+ 380 0124 711C      		adc r7,__zero_reg__
+  91:usart.c       ****         for(m=n+1;m<Nint+Nfrac;m++){
+ 382               	.LM38:
+ 383 0126 E981      		ldd r30,Y+1
+ 384 0128 FA81      		ldd r31,Y+2
+ 385 012a 6E16      		cp r6,r30
+ 386 012c 7F06      		cpc r7,r31
+ 387 012e 00F0      		brlo .L17
+ 388 0130 4B01      		movw r8,r22
+ 389 0132 5C01      		movw r10,r24
+  95:usart.c       ****         d[n] = (unsigned int)( num / DivFactor );
+ 391               	.LM39:
+ 392 0134 00D0      		rcall __floatunsisf
+ 393 0136 9B01      		movw r18,r22
+ 394 0138 AC01      		movw r20,r24
+ 395 013a C701      		movw r24,r14
+ 396 013c B601      		movw r22,r12
+ 397 013e 00D0      		rcall __divsf3
+ 398 0140 00D0      		rcall __fixunssfsi
+ 399 0142 DC01      		movw r26,r24
+ 400 0144 CB01      		movw r24,r22
+ 401 0146 3C01      		movw r6,r24
+ 403               	.LM40:
+ 404 0148 2F81      		ldd r18,Y+7
+ 405 014a 3885      		ldd r19,Y+8
+ 406 014c 2115      		cp r18,__zero_reg__
+ 407 014e 3105      		cpc r19,__zero_reg__
+ 408 0150 01F4      		brne .L25
+ 410               	.LM41:
+ 411 0152 81E0      		ldi r24,lo8(1)
+ 412 0154 90E0      		ldi r25,hi8(1)
+ 413 0156 9887      		std Y+8,r25
+ 414 0158 8F83      		std Y+7,r24
+ 415 015a 6114      		cp r6,__zero_reg__
+ 416 015c 7104      		cpc r7,__zero_reg__
+ 417 015e 01F4      		brne .L18
+ 419               	.LM42:
+ 420 0160 ED81      		ldd r30,Y+5
+ 421 0162 FE81      		ldd r31,Y+6
+ 422 0164 0E17      		cp r16,r30
+ 423 0166 1F07      		cpc r17,r31
+ 424 0168 01F0      		breq .L18
+ 425 016a 1886      		std Y+8,__zero_reg__
+ 426 016c 1F82      		std Y+7,__zero_reg__
+ 427 016e 00C0      		rjmp .L18
+ 428               	.L25:
+ 430               	.LM43:
+ 431 0170 21E0      		ldi r18,lo8(1)
+ 432 0172 30E0      		ldi r19,hi8(1)
+ 433 0174 3887      		std Y+8,r19
+ 434 0176 2F83      		std Y+7,r18
+ 435               	.L18:
+  97:usart.c       ****         num = num - d[n]*DivFactor;
+ 437               	.LM44:
+ 438 0178 B301      		movw r22,r6
+ 439 017a 80E0      		ldi r24,lo8(0)
+ 440 017c 90E0      		ldi r25,hi8(0)
+ 441 017e A501      		movw r20,r10
+ 442 0180 9401      		movw r18,r8
+ 443 0182 00D0      		rcall __mulsi3
+ 444 0184 00D0      		rcall __floatunsisf
+ 445 0186 9B01      		movw r18,r22
+ 446 0188 AC01      		movw r20,r24
+ 447 018a C701      		movw r24,r14
+ 448 018c B601      		movw r22,r12
+ 449 018e 00D0      		rcall __subsf3
+ 450 0190 6B01      		movw r12,r22
+ 451 0192 E82E      		mov r14,r24
+ 452 0194 F92E      		mov r15,r25
+  98:usart.c       ****         
+  99:usart.c       ****         if( (valid == 1)|(n == (Nint+Nfrac-1)) ) USART_transmit(0x30 + d[n]);
+ 454               	.LM45:
+ 455 0196 EF81      		ldd r30,Y+7
+ 456 0198 F885      		ldd r31,Y+8
+ 457 019a 3097      		sbiw r30,0
+ 458 019c 01F4      		brne .L28
+ 459 019e 2B81      		ldd r18,Y+3
+ 460 01a0 3C81      		ldd r19,Y+4
+ 461 01a2 0217      		cp r16,r18
+ 462 01a4 1307      		cpc r17,r19
+ 463 01a6 01F4      		brne .L30
+ 464               	.L28:
+ 466               	.LM46:
+ 467 01a8 862D      		mov r24,r6
+ 468 01aa 805D      		subi r24,lo8(-(48))
+ 469 01ac 00C0      		rjmp .L31
+ 470               	.L30:
+ 100:usart.c       ****         else if( valid == 0 )                   USART_transmit(0x20);
+ 472               	.LM47:
+ 473 01ae 80E2      		ldi r24,lo8(32)
+ 474               	.L31:
+ 475 01b0 00D0      		rcall USART_transmit
+ 476 01b2 0F5F      		subi r16,lo8(-(1))
+ 477 01b4 1F4F      		sbci r17,hi8(-(1))
+ 478               	.L14:
+  84:usart.c       ****     for(n=0;n<=Nint+Nfrac-1;n++){
+ 480               	.LM48:
+ 481 01b6 8B81      		ldd r24,Y+3
+ 482 01b8 9C81      		ldd r25,Y+4
+ 483 01ba 8017      		cp r24,r16
+ 484 01bc 9107      		cpc r25,r17
+ 485 01be 00F0      		brlo .+2
+ 486 01c0 00C0      		rjmp .L24
+ 487               	/* epilogue start */
+ 101:usart.c       ****         else                                    USART_transmit(0xff);
+ 102:usart.c       ****     }
+ 103:usart.c       **** }
+ 489               	.LM49:
+ 490 01c2 2896      		adiw r28,8
+ 491 01c4 0FB6      		in __tmp_reg__,__SREG__
+ 492 01c6 F894      		cli
+ 493 01c8 DEBF      		out __SP_H__,r29
+ 494 01ca 0FBE      		out __SREG__,__tmp_reg__
+ 495 01cc CDBF      		out __SP_L__,r28
+ 496 01ce DF91      		pop r29
+ 497 01d0 CF91      		pop r28
+ 498 01d2 1F91      		pop r17
+ 499 01d4 0F91      		pop r16
+ 500 01d6 FF90      		pop r15
+ 501 01d8 EF90      		pop r14
+ 502 01da DF90      		pop r13
+ 503 01dc CF90      		pop r12
+ 504 01de BF90      		pop r11
+ 505 01e0 AF90      		pop r10
+ 506 01e2 9F90      		pop r9
+ 507 01e4 8F90      		pop r8
+ 508 01e6 7F90      		pop r7
+ 509 01e8 6F90      		pop r6
+ 510 01ea 5F90      		pop r5
+ 511 01ec 4F90      		pop r4
+ 512 01ee 3F90      		pop r3
+ 513 01f0 2F90      		pop r2
+ 514 01f2 0895      		ret
+ 521               	.Lscope4:
+ 523               	.global	USART_receive
+ 525               	USART_receive:
+ 104:usart.c       **** 
+ 105:usart.c       **** // USART receive without wait & Error rejection
+ 106:usart.c       **** /*
+ 107:usart.c       **** unsigned char USART_receive(void){
+ 108:usart.c       **** 	return UDR0;
+ 109:usart.c       **** }
+ 110:usart.c       **** */
+ 111:usart.c       **** 
+ 112:usart.c       **** // USART receive w/o. Time-out
+ 113:usart.c       **** unsigned char USART_receive(void){
+ 527               	.LM50:
+ 528               	.LFBB5:
+ 529               	/* prologue: function */
+ 530               	/* frame size = 0 */
+ 531               	/* stack size = 0 */
+ 532               	.L__stack_usage = 0
+ 533               	.L33:
+ 114:usart.c       **** 	unsigned char error_data;
+ 115:usart.c       **** 	while(!(USART_STATUS & (1<<RXC0)));	// Wait receive process
+ 535               	.LM51:
+ 536 01f4 8091 C000 		lds r24,192
+ 537 01f8 87FF      		sbrs r24,7
+ 538 01fa 00C0      		rjmp .L33
+ 116:usart.c       **** 	if ( !( ( USART_STATUS & (1<< FE0))
+ 540               	.LM52:
+ 541 01fc 8091 C000 		lds r24,192
+ 117:usart.c       **** 	      | ( USART_STATUS & (1<<UPE0)) ) ){	// detect framing & parity error
+ 543               	.LM53:
+ 544 0200 8091 C000 		lds r24,192
+ 118:usart.c       **** 		return UDR0;
+ 119:usart.c       **** 	}else{
+ 120:usart.c       **** 		error_data = UDR0;
+ 546               	.LM54:
+ 547 0204 8091 C600 		lds r24,198
+ 548               	/* epilogue start */
+ 121:usart.c       **** 		return error_data;
+ 122:usart.c       **** 	}
+ 123:usart.c       **** }
+ 550               	.LM55:
+ 551 0208 0895      		ret
+ 556               	.Lscope5:
+ 558               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 usart.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:107    .text:00000000 USARTinit
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:142    .text:0000001a USART_transmit
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:168    .text:00000028 USART_transmit_str
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:209    .text:0000003e USART_transmit_numeric
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cckTgCno.s:525    .text:000001f4 USART_receive
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+__mulsf3
+__ltsf2
+__mulsi3
+__floatunsisf
+__divsf3
+__fixunssfsi
+__subsf3

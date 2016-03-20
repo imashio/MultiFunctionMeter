@@ -1,0 +1,1209 @@
+   1               		.file	"lcd.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 106               	.global	lcd_set_4bit
+ 108               	lcd_set_4bit:
+   1:lcd.c         **** // LCD Control Functions
+   2:lcd.c         **** // Target : ATMEGA88 (ATMEGA168)
+   3:lcd.c         **** // Clock  : 1MHz (Fuse : CKDIV8 = 0, Fullswing crystal)
+   4:lcd.c         **** //
+   5:lcd.c         **** 
+   6:lcd.c         **** #include <avr/io.h>
+   7:lcd.c         **** #include <util/delay.h>
+   8:lcd.c         **** #include <avr/interrupt.h>
+   9:lcd.c         **** #include "lcd.h"
+  10:lcd.c         **** 
+  11:lcd.c         **** // I/O
+  12:lcd.c         **** //  PB0 : OUT : Vo
+  13:lcd.c         **** //  PB1 : OUT : RS
+  14:lcd.c         **** //  PB2 : OUT : R/W
+  15:lcd.c         **** //  PB3 : OUT : E
+  16:lcd.c         **** //  PC0 : OUT : D4
+  17:lcd.c         **** //  PC1 : OUT : D5
+  18:lcd.c         **** //  PC2 : OUT : D6
+  19:lcd.c         **** //  PC3 : OUT : D7
+  20:lcd.c         **** //
+  21:lcd.c         **** 
+  22:lcd.c         **** // Registor & BIT Configration
+  23:lcd.c         **** #define LCD_PORT      PORTC	//LCD DATA PORT Registor
+  24:lcd.c         **** #define LCD_DDR       DDRC	// LCD DATA PORT DDR registor
+  25:lcd.c         **** #define LCD_PORT_E_RS PORTB	//LCD E & RS PORT Registor
+  26:lcd.c         **** #define LCD_DDR_E_RS  DDRB // 
+  27:lcd.c         **** #define LCD_Vo		  0x01	// Contrast adujust (1:Lowest, 0: Highest) 
+  28:lcd.c         **** 							// PB0
+  29:lcd.c         **** #define LCD_RW		  0x04	// Read / Write
+  30:lcd.c         **** 							// PB2
+  31:lcd.c         **** #define LCD_E		  0x08	// Enable
+  32:lcd.c         **** 							// PB3
+  33:lcd.c         **** #define LCD_RS		  0x02	// Register Select
+  34:lcd.c         **** 							// PB1 
+  35:lcd.c         **** 
+  36:lcd.c         **** // fuction for sending control bitpattern
+  37:lcd.c         **** void lcd_set_4bit(unsigned char bitpattern){
+ 110               	.LM0:
+ 111               	.LFBB1:
+ 112               	/* prologue: function */
+ 113               	/* frame size = 0 */
+ 114               	/* stack size = 0 */
+ 115               	.L__stack_usage = 0
+  38:lcd.c         **** //	cli();
+  39:lcd.c         **** 	LCD_PORT		= bitpattern; // set sending data
+ 117               	.LM1:
+ 118 0000 88B9      		out 40-32,r24
+  40:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_E; // set E "H"
+ 120               	.LM2:
+ 121 0002 85B1      		in r24,37-32
+ 122 0004 98E0      		ldi r25,lo8(8)
+ 123 0006 8927      		eor r24,r25
+ 124 0008 85B9      		out 37-32,r24
+ 125               	.LBB30:
+ 126               	.LBB31:
+ 128               	.Ltext1:
+   1:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** /* Copyright (c) 2002, Marek Michalkiewicz
+   2:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Copyright (c) 2004,2005,2007 Joerg Wunsch
+   3:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Copyright (c) 2007  Florin-Viorel Petrov
+   4:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    All rights reserved.
+   5:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+   6:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Redistribution and use in source and binary forms, with or without
+   7:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    modification, are permitted provided that the following conditions are met:
+   8:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+   9:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    * Redistributions of source code must retain the above copyright
+  10:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer.
+  11:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  12:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    * Redistributions in binary form must reproduce the above copyright
+  13:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer in
+  14:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****      the documentation and/or other materials provided with the
+  15:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****      distribution.
+  16:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  17:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    * Neither the name of the copyright holders nor the names of
+  18:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****      contributors may be used to endorse or promote products derived
+  19:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****      from this software without specific prior written permission.
+  20:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  21:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  22:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  23:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  24:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  25:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  26:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  27:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  30:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  31:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   POSSIBILITY OF SUCH DAMAGE. */
+  32:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  33:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** /* $Id: delay.h.in 2251 2011-09-14 08:20:33Z joerg_wunsch $ */
+  34:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  35:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #ifndef _UTIL_DELAY_H_
+  36:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #define _UTIL_DELAY_H_ 1
+  37:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  38:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #ifndef __HAS_DELAY_CYCLES
+  39:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #define __HAS_DELAY_CYCLES 1
+  40:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #endif
+  41:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  42:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #include <inttypes.h>
+  43:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #include <util/delay_basic.h>
+  44:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #include <math.h>
+  45:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  46:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** /** \file */
+  47:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** /** \defgroup util_delay <util/delay.h>: Convenience functions for busy-wait delay loops
+  48:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     \code
+  49:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     #define F_CPU 1000000UL  // 1 MHz
+  50:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     //#define F_CPU 14.7456E6
+  51:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     #include <util/delay.h>
+  52:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     \endcode
+  53:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  54:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     \note As an alternative method, it is possible to pass the
+  55:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     F_CPU macro down to the compiler from the Makefile.
+  56:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     Obviously, in that case, no \c \#define statement should be
+  57:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     used.
+  58:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  59:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     The functions in this header file are wrappers around the basic
+  60:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     busy-wait functions from <util/delay_basic.h>.  They are meant as
+  61:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     convenience functions where actual time values can be specified
+  62:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     rather than a number of cycles to wait for.  The idea behind is
+  63:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     that compile-time constant expressions will be eliminated by
+  64:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     compiler optimization so floating-point expressions can be used
+  65:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     to calculate the number of delay cycles needed based on the CPU
+  66:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     frequency passed by the macro F_CPU.
+  67:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  68:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     \note In order for these functions to work as intended, compiler
+  69:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     optimizations <em>must</em> be enabled, and the delay time
+  70:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     <em>must</em> be an expression that is a known constant at
+  71:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     compile-time.  If these requirements are not met, the resulting
+  72:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     delay will be much longer (and basically unpredictable), and
+  73:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     applications that otherwise do not use floating-point calculations
+  74:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     will experience severe code bloat by the floating-point library
+  75:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     routines linked into the application.
+  76:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  77:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     The functions available allow the specification of microsecond, and
+  78:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     millisecond delays directly, using the application-supplied macro
+  79:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     F_CPU as the CPU clock frequency (in Hertz).
+  80:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  81:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** */
+  82:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  83:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #if !defined(__DOXYGEN__)
+  84:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** static inline void _delay_us(double __us) __attribute__((always_inline));
+  85:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** static inline void _delay_ms(double __ms) __attribute__((always_inline));
+  86:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #endif
+  87:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  88:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #ifndef F_CPU
+  89:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** /* prevent compiler error by supplying a default */
+  90:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** # warning "F_CPU not defined for <util/delay.h>"
+  91:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** # define F_CPU 1000000UL
+  92:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #endif
+  93:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  94:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #ifndef __OPTIMIZE__
+  95:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** # warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+  96:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #endif
+  97:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+  98:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+  99:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 100:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   __STDC_HOSTED__
+ 101:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #  include <math.h>
+ 102:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #endif
+ 103:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 104:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** /**
+ 105:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    \ingroup util_delay
+ 106:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 107:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Perform a delay of \c __ms milliseconds, using _delay_loop_2().
+ 108:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 109:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    The macro F_CPU is supposed to be defined to a
+ 110:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    constant defining the CPU clock frequency (in Hertz).
+ 111:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 112:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    The maximal possible delay is 262.14 ms / F_CPU in MHz.
+ 113:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 114:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    When the user request delay which exceed the maximum possible one,
+ 115:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    _delay_ms() provides a decreased resolution functionality. In this
+ 116:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    mode _delay_ms() will work with a resolution of 1/10 ms, providing
+ 117:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    delays up to 6.5535 seconds (independent from CPU frequency).  The
+ 118:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    user will not be informed about decreased resolution.
+ 119:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 120:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    If the avr-gcc toolchain has __builtin_avr_delay_cycles(unsigned long)
+ 121:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    support, maximal possible delay is 4294967.295 ms/ F_CPU in MHz. For
+ 122:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    values greater than the maximal possible delay, overflows results in
+ 123:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    no delay i.e., 0ms.
+ 124:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 125:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Conversion of __us into clock cycles may not always result in integer.
+ 126:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    By default, the clock cycles rounded up to next integer. This ensures that
+ 127:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    the user gets atleast __us microseconds of delay.
+ 128:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 129:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Alternatively, user can define __DELAY_ROUND_DOWN__ and __DELAY_ROUND_CLOSEST__
+ 130:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    to round down and round to closest integer.
+ 131:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 132:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Note: The new implementation of _delay_ms(double __ms) with 
+ 133:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     __builtin_avr_delay_cycles(unsigned long) support is not backward compatible. 
+ 134:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    User can define __DELAY_BACKWARD_COMPATIBLE__ to get a backward compatible delay.
+ 135:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Also, the backward compatible
+ 136:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    algorithm will be chosen if the code is compiled in a <em>freestanding
+ 137:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    environment</em> (GCC option \c -ffreestanding), as the math functions
+ 138:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    required for rounding are not available to the compiler then.
+ 139:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 140:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****  */
+ 141:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** void
+ 142:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** _delay_ms(double __ms)
+ 143:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** {
+ 144:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	uint16_t __ticks;
+ 145:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	double __tmp ; 
+ 146:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 147:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 148:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   __STDC_HOSTED__
+ 149:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	uint32_t __ticks_dc;
+ 150:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 151:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e3) * __ms;
+ 152:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 153:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	#if defined(__DELAY_ROUND_DOWN__)
+ 154:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)fabs(__tmp);
+ 155:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 156:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	#elif defined(__DELAY_ROUND_CLOSEST__)
+ 157:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(fabs(__tmp)+0.5);
+ 158:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 159:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	#else
+ 160:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		//round up by default
+ 161:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+ 162:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	#endif
+ 163:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 165:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 166:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #else
+ 167:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 4e3) * __ms;
+ 168:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	if (__tmp < 1.0)
+ 169:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks = 1;
+ 170:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	else if (__tmp > 65535)
+ 171:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	{
+ 172:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		//	__ticks = requested delay in 1/10 ms
+ 173:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks = (uint16_t) (__ms * 10.0);
+ 174:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		while(__ticks)
+ 175:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		{
+ 176:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 			// wait 1/10 ms
+ 177:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 			_delay_loop_2(((F_CPU) / 4e3) / 10);
+ 178:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 			__ticks --;
+ 179:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		}
+ 180:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		return;
+ 181:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	}
+ 182:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	else
+ 183:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks = (uint16_t)__tmp;
+ 184:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	_delay_loop_2(__ticks);
+ 185:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #endif
+ 186:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** }
+ 187:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 188:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** /**
+ 189:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    \ingroup util_delay
+ 190:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 191:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Perform a delay of \c __us microseconds, using _delay_loop_1().
+ 192:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 193:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    The macro F_CPU is supposed to be defined to a
+ 194:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    constant defining the CPU clock frequency (in Hertz).
+ 195:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 196:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    The maximal possible delay is 768 us / F_CPU in MHz.
+ 197:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 198:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    If the user requests a delay greater than the maximal possible one,
+ 199:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    _delay_us() will automatically call _delay_ms() instead.  The user
+ 200:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    will not be informed about this case.
+ 201:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 202:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    If the avr-gcc toolchain has __builtin_avr_delay_cycles(unsigned long)
+ 203:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    support, maximal possible delay is 4294967.295 us/ F_CPU in MHz. For
+ 204:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    values greater than the maximal possible delay, overflow results in
+ 205:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    no delay i.e., 0us.
+ 206:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   
+ 207:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Conversion of __us into clock cycles may not always result in integer.
+ 208:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    By default, the clock cycles rounded up to next integer. This ensures that
+ 209:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    the user gets atleast __us microseconds of delay.
+ 210:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 211:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Alternatively, user can define __DELAY_ROUND_DOWN__ and __DELAY_ROUND_CLOSEST__
+ 212:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    to round down and round to closest integer.
+ 213:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****  
+ 214:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Note: The new implementation of _delay_us(double __us) with 
+ 215:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****     __builtin_avr_delay_cycles(unsigned long) support is not backward compatible.
+ 216:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    User can define __DELAY_BACKWARD_COMPATIBLE__ to get a backward compatible delay.
+ 217:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    Also, the backward compatible
+ 218:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    algorithm will be chosen if the code is compiled in a <em>freestanding
+ 219:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    environment</em> (GCC option \c -ffreestanding), as the math functions
+ 220:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****    required for rounding are not available to the compiler then.
+ 221:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 222:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****  */
+ 223:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** void
+ 224:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** _delay_us(double __us)
+ 225:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** {
+ 226:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	uint8_t __ticks;
+ 227:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	double __tmp ; 
+ 228:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 229:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 230:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h ****   __STDC_HOSTED__
+ 231:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	uint32_t __ticks_dc;
+ 232:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 233:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e6) * __us;
+ 234:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 235:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	#if defined(__DELAY_ROUND_DOWN__)
+ 236:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)fabs(__tmp);
+ 237:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 238:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	#elif defined(__DELAY_ROUND_CLOSEST__)
+ 239:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(fabs(__tmp)+0.5);
+ 240:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 241:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	#else
+ 242:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		//round up by default
+ 243:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+ 244:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	#endif
+ 245:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 
+ 246:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 130               	.LM3:
+ 131 000a 8AE6      		 ldi r24,lo8(106)
+ 132 000c 8A95      	    1:dec r24
+ 133 000e 01F4      	    brne 1b
+ 134 0010 00C0      		rjmp .
+ 135               	.LBE31:
+ 136               	.LBE30:
+ 138               	.Ltext2:
+  41:lcd.c         **** 	_delay_us(20);
+  42:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_E; // set E "L"
+ 140               	.LM4:
+ 141 0012 85B1      		in r24,37-32
+ 142 0014 8927      		eor r24,r25
+ 143 0016 85B9      		out 37-32,r24
+ 144               	.LBB32:
+ 145               	.LBB33:
+ 147               	.Ltext3:
+ 149               	.LM5:
+ 150 0018 8AE6      		 ldi r24,lo8(106)
+ 151 001a 8A95      	    1:dec r24
+ 152 001c 01F4      	    brne 1b
+ 153 001e 00C0      		rjmp .
+ 154               	/* epilogue start */
+ 155               	.LBE33:
+ 156               	.LBE32:
+ 158               	.Ltext4:
+  43:lcd.c         **** 	_delay_us(20);	
+  44:lcd.c         **** //	sei();
+  45:lcd.c         **** }
+ 160               	.LM6:
+ 161 0020 0895      		ret
+ 163               	.Lscope1:
+ 165               	.global	lcd_init
+ 167               	lcd_init:
+  46:lcd.c         **** 
+  47:lcd.c         **** // Initializing LCD
+  48:lcd.c         **** void lcd_init(void)
+  49:lcd.c         **** {
+ 169               	.LM7:
+ 170               	.LFBB2:
+ 171               	/* prologue: function */
+ 172               	/* frame size = 0 */
+ 173               	/* stack size = 0 */
+ 174               	.L__stack_usage = 0
+  50:lcd.c         **** 	// set output register
+  51:lcd.c         **** 	LCD_DDR      = _BV(3)|_BV(2)|_BV(1)|_BV(0);
+ 176               	.LM8:
+ 177 0022 8FE0      		ldi r24,lo8(15)
+ 178 0024 87B9      		out 39-32,r24
+  52:lcd.c         **** 	LCD_DDR_E_RS = _BV(3)|_BV(2)|_BV(1)|_BV(0);
+ 180               	.LM9:
+ 181 0026 84B9      		out 36-32,r24
+  53:lcd.c         **** 	// E, R/W, RS, Vo
+  54:lcd.c         **** 
+  55:lcd.c         **** 	// set instruction input mode
+  56:lcd.c         **** 	LCD_PORT_E_RS	= 0x00;
+ 183               	.LM10:
+ 184 0028 15B8      		out 37-32,__zero_reg__
+  57:lcd.c         **** 
+  58:lcd.c         **** 	// initialize data port
+  59:lcd.c         **** 	LCD_PORT		= 0x00;
+ 186               	.LM11:
+ 187 002a 18B8      		out 40-32,__zero_reg__
+ 188               	.LBB34:
+ 189               	.LBB35:
+ 191               	.Ltext5:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 193               	.LM12:
+ 194 002c 8FEF      		 ldi r24,lo8(63999)
+ 195 002e 99EF      	    ldi r25,hi8(63999)
+ 196 0030 A0E0      	    ldi r26,hlo8(63999)
+ 197 0032 8150      	    1:subi r24,1
+ 198 0034 9040      	    sbci r25,0
+ 199 0036 A040      	    sbci r26,0
+ 200 0038 01F4      	    brne 1b
+ 201 003a 00C0      		rjmp .
+ 202 003c 0000      		nop
+ 203               	.LBE35:
+ 204               	.LBE34:
+ 206               	.Ltext6:
+  60:lcd.c         **** 
+  61:lcd.c         **** 	// wait more than 15ms
+  62:lcd.c         **** 	_delay_ms(20);
+  63:lcd.c         **** 
+  64:lcd.c         **** 	// set 8-bit mode
+  65:lcd.c         **** 	lcd_set_4bit(0x03);
+ 208               	.LM13:
+ 209 003e 83E0      		ldi r24,lo8(3)
+ 210 0040 00D0      		rcall lcd_set_4bit
+ 211               	.LBB36:
+ 212               	.LBB37:
+ 214               	.Ltext7:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 216               	.LM14:
+ 217 0042 AFE1      		 ldi r26,lo8(19999)
+ 218 0044 BEE4      	    ldi r27,hi8(19999)
+ 219 0046 1197      	    1:sbiw r26,1
+ 220 0048 01F4      	    brne 1b
+ 221 004a 00C0      		rjmp .
+ 222 004c 0000      		nop
+ 223               	.LBE37:
+ 224               	.LBE36:
+ 226               	.Ltext8:
+  66:lcd.c         **** 	_delay_ms(5);
+  67:lcd.c         **** 	lcd_set_4bit(0x03);
+ 228               	.LM15:
+ 229 004e 83E0      		ldi r24,lo8(3)
+ 230 0050 00D0      		rcall lcd_set_4bit
+ 231               	.LBB38:
+ 232               	.LBB39:
+ 234               	.Ltext9:
+ 236               	.LM16:
+ 237 0052 87EB      		 ldi r24,lo8(439)
+ 238 0054 91E0      	    ldi r25,hi8(439)
+ 239 0056 0197      	    1:sbiw r24,1
+ 240 0058 01F4      	    brne 1b
+ 241 005a 00C0      		rjmp .
+ 242 005c 0000      		nop
+ 243               	.LBE39:
+ 244               	.LBE38:
+ 246               	.Ltext10:
+  68:lcd.c         **** 	_delay_us(110);
+  69:lcd.c         **** 	lcd_set_4bit(0x03);
+ 248               	.LM17:
+ 249 005e 83E0      		ldi r24,lo8(3)
+ 250 0060 00D0      		rcall lcd_set_4bit
+ 251               	.LBB40:
+ 252               	.LBB41:
+ 254               	.Ltext11:
+ 256               	.LM18:
+ 257 0062 A7EC      		 ldi r26,lo8(199)
+ 258 0064 B0E0      	    ldi r27,hi8(199)
+ 259 0066 1197      	    1:sbiw r26,1
+ 260 0068 01F4      	    brne 1b
+ 261 006a 00C0      		rjmp .
+ 262 006c 0000      		nop
+ 263               	.LBE41:
+ 264               	.LBE40:
+ 266               	.Ltext12:
+  70:lcd.c         **** 	_delay_us(50);
+  71:lcd.c         **** 	
+  72:lcd.c         **** 	// set 4-bit mode
+  73:lcd.c         **** 	lcd_set_4bit(0x02);
+ 268               	.LM19:
+ 269 006e 82E0      		ldi r24,lo8(2)
+ 270 0070 00D0      		rcall lcd_set_4bit
+ 271               	.LBB42:
+ 272               	.LBB43:
+ 274               	.Ltext13:
+ 276               	.LM20:
+ 277 0072 87EC      		 ldi r24,lo8(199)
+ 278 0074 90E0      	    ldi r25,hi8(199)
+ 279 0076 0197      	    1:sbiw r24,1
+ 280 0078 01F4      	    brne 1b
+ 281 007a 00C0      		rjmp .
+ 282 007c 0000      		nop
+ 283               	.LBE43:
+ 284               	.LBE42:
+ 286               	.Ltext14:
+  74:lcd.c         **** 	_delay_us(50);
+  75:lcd.c         **** 
+  76:lcd.c         **** 	// function setting
+  77:lcd.c         **** 	lcd_set_4bit(0x02);
+ 288               	.LM21:
+ 289 007e 82E0      		ldi r24,lo8(2)
+ 290 0080 00D0      		rcall lcd_set_4bit
+  78:lcd.c         **** 	lcd_set_4bit(0x08);
+ 292               	.LM22:
+ 293 0082 88E0      		ldi r24,lo8(8)
+ 294 0084 00D0      		rcall lcd_set_4bit
+ 295               	.LBB44:
+ 296               	.LBB45:
+ 298               	.Ltext15:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 300               	.LM23:
+ 301 0086 AFE9      		 ldi r26,lo8(3999)
+ 302 0088 BFE0      	    ldi r27,hi8(3999)
+ 303 008a 1197      	    1:sbiw r26,1
+ 304 008c 01F4      	    brne 1b
+ 305 008e 00C0      		rjmp .
+ 306 0090 0000      		nop
+ 307               	.LBE45:
+ 308               	.LBE44:
+ 310               	.Ltext16:
+  79:lcd.c         **** 	_delay_ms(1);
+  80:lcd.c         **** 
+  81:lcd.c         **** 	// set display off, cursol off and blink off
+  82:lcd.c         **** 	lcd_set_4bit(0x00);
+ 312               	.LM24:
+ 313 0092 80E0      		ldi r24,lo8(0)
+ 314 0094 00D0      		rcall lcd_set_4bit
+  83:lcd.c         **** 	lcd_set_4bit(0x0c);
+ 316               	.LM25:
+ 317 0096 8CE0      		ldi r24,lo8(12)
+ 318 0098 00D0      		rcall lcd_set_4bit
+ 319               	.LBB46:
+ 320               	.LBB47:
+ 322               	.Ltext17:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 324               	.LM26:
+ 325 009a 8FE9      		 ldi r24,lo8(3999)
+ 326 009c 9FE0      	    ldi r25,hi8(3999)
+ 327 009e 0197      	    1:sbiw r24,1
+ 328 00a0 01F4      	    brne 1b
+ 329 00a2 00C0      		rjmp .
+ 330 00a4 0000      		nop
+ 331               	.LBE47:
+ 332               	.LBE46:
+ 334               	.Ltext18:
+  84:lcd.c         **** 	_delay_ms(1);
+  85:lcd.c         **** 
+  86:lcd.c         **** 	// set entry mode (cursol direction : right, disable shift)
+  87:lcd.c         **** 	lcd_set_4bit(0x00);
+ 336               	.LM27:
+ 337 00a6 80E0      		ldi r24,lo8(0)
+ 338 00a8 00D0      		rcall lcd_set_4bit
+  88:lcd.c         **** 	lcd_set_4bit(0x03);
+ 340               	.LM28:
+ 341 00aa 83E0      		ldi r24,lo8(3)
+ 342 00ac 00D0      		rcall lcd_set_4bit
+ 343               	.LBB48:
+ 344               	.LBB49:
+ 346               	.Ltext19:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 348               	.LM29:
+ 349 00ae AFE9      		 ldi r26,lo8(3999)
+ 350 00b0 BFE0      	    ldi r27,hi8(3999)
+ 351 00b2 1197      	    1:sbiw r26,1
+ 352 00b4 01F4      	    brne 1b
+ 353 00b6 00C0      		rjmp .
+ 354 00b8 0000      		nop
+ 355               	.LBE49:
+ 356               	.LBE48:
+ 358               	.Ltext20:
+  89:lcd.c         **** 	_delay_ms(1);
+  90:lcd.c         **** 
+  91:lcd.c         **** 	// clear display
+  92:lcd.c         **** 	lcd_set_4bit(0x00);
+ 360               	.LM30:
+ 361 00ba 80E0      		ldi r24,lo8(0)
+ 362 00bc 00D0      		rcall lcd_set_4bit
+  93:lcd.c         **** 	lcd_set_4bit(0x01);
+ 364               	.LM31:
+ 365 00be 81E0      		ldi r24,lo8(1)
+ 366 00c0 00D0      		rcall lcd_set_4bit
+ 367               	.LBB50:
+ 368               	.LBB51:
+ 370               	.Ltext21:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 372               	.LM32:
+ 373 00c2 8FE3      		 ldi r24,lo8(7999)
+ 374 00c4 9FE1      	    ldi r25,hi8(7999)
+ 375 00c6 0197      	    1:sbiw r24,1
+ 376 00c8 01F4      	    brne 1b
+ 377 00ca 00C0      		rjmp .
+ 378 00cc 0000      		nop
+ 379               	.LBE51:
+ 380               	.LBE50:
+ 382               	.Ltext22:
+  94:lcd.c         **** 	_delay_ms(2);
+  95:lcd.c         **** 
+  96:lcd.c         **** 	// clear cursol position
+  97:lcd.c         **** 	lcd_set_4bit(0x00);
+ 384               	.LM33:
+ 385 00ce 80E0      		ldi r24,lo8(0)
+ 386 00d0 00D0      		rcall lcd_set_4bit
+  98:lcd.c         **** 	lcd_set_4bit(0x02);
+ 388               	.LM34:
+ 389 00d2 82E0      		ldi r24,lo8(2)
+ 390 00d4 00D0      		rcall lcd_set_4bit
+ 391               	.LBB52:
+ 392               	.LBB53:
+ 394               	.Ltext23:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 396               	.LM35:
+ 397 00d6 AFE3      		 ldi r26,lo8(7999)
+ 398 00d8 BFE1      	    ldi r27,hi8(7999)
+ 399 00da 1197      	    1:sbiw r26,1
+ 400 00dc 01F4      	    brne 1b
+ 401 00de 00C0      		rjmp .
+ 402 00e0 0000      		nop
+ 403               	.LBE53:
+ 404               	.LBE52:
+ 406               	.Ltext24:
+  99:lcd.c         **** 	_delay_ms(2);
+ 100:lcd.c         **** 
+ 101:lcd.c         **** 	// set data input mode
+ 102:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_RS;
+ 408               	.LM36:
+ 409 00e2 85B1      		in r24,37-32
+ 410 00e4 92E0      		ldi r25,lo8(2)
+ 411 00e6 8927      		eor r24,r25
+ 412 00e8 85B9      		out 37-32,r24
+ 413               	/* epilogue start */
+ 103:lcd.c         **** }
+ 415               	.LM37:
+ 416 00ea 0895      		ret
+ 418               	.Lscope2:
+ 421               	.global	lcd_set_char
+ 423               	lcd_set_char:
+ 104:lcd.c         **** 
+ 105:lcd.c         **** // LCD character allocation
+ 106:lcd.c         **** void lcd_locate(unsigned char row, unsigned char col)
+ 107:lcd.c         **** {
+ 108:lcd.c         **** //	cli();
+ 109:lcd.c         **** 	// set instruction input mode
+ 110:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_RS;
+ 111:lcd.c         **** 	lcd_set_char(0x80 | col | (0x40 * row) );
+ 112:lcd.c         **** 	// set data input mode
+ 113:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_RS;
+ 114:lcd.c         **** //	sei();
+ 115:lcd.c         **** }
+ 116:lcd.c         **** 
+ 117:lcd.c         **** // LCD character (1 byte) sending
+ 118:lcd.c         **** void lcd_set_char(unsigned char c)
+ 119:lcd.c         **** {
+ 425               	.LM38:
+ 426               	.LFBB3:
+ 427 00ec CF93      		push r28
+ 428               	/* prologue: function */
+ 429               	/* frame size = 0 */
+ 430               	/* stack size = 1 */
+ 431               	.L__stack_usage = 1
+ 432 00ee C82F      		mov r28,r24
+ 120:lcd.c         **** //	cli();
+ 121:lcd.c         **** 	lcd_set_4bit(c >> 4); // Upper Bit
+ 434               	.LM39:
+ 435 00f0 8295      		swap r24
+ 436 00f2 8F70      		andi r24,lo8(15)
+ 437 00f4 00D0      		rcall lcd_set_4bit
+ 122:lcd.c         **** 	lcd_set_4bit(0x0f & c); // Lower Bit
+ 439               	.LM40:
+ 440 00f6 8C2F      		mov r24,r28
+ 441 00f8 8F70      		andi r24,lo8(15)
+ 442 00fa 00D0      		rcall lcd_set_4bit
+ 443               	.LBB54:
+ 444               	.LBB55:
+ 446               	.Ltext25:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 448               	.LM41:
+ 449 00fc 8FE9      		 ldi r24,lo8(3999)
+ 450 00fe 9FE0      	    ldi r25,hi8(3999)
+ 451 0100 0197      	    1:sbiw r24,1
+ 452 0102 01F4      	    brne 1b
+ 453 0104 00C0      		rjmp .
+ 454 0106 0000      		nop
+ 455               	/* epilogue start */
+ 456               	.LBE55:
+ 457               	.LBE54:
+ 459               	.Ltext26:
+ 123:lcd.c         **** 	_delay_ms(1);
+ 124:lcd.c         **** //	sei();
+ 125:lcd.c         **** }
+ 461               	.LM42:
+ 462 0108 CF91      		pop r28
+ 463 010a 0895      		ret
+ 465               	.Lscope3:
+ 469               	.global	lcd_locate
+ 471               	lcd_locate:
+ 107:lcd.c         **** {
+ 473               	.LM43:
+ 474               	.LFBB4:
+ 475 010c CF93      		push r28
+ 476               	/* prologue: function */
+ 477               	/* frame size = 0 */
+ 478               	/* stack size = 1 */
+ 479               	.L__stack_usage = 1
+ 110:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_RS;
+ 481               	.LM44:
+ 482 010e 95B1      		in r25,37-32
+ 483 0110 C2E0      		ldi r28,lo8(2)
+ 484 0112 9C27      		eor r25,r28
+ 485 0114 95B9      		out 37-32,r25
+ 111:lcd.c         **** 	lcd_set_char(0x80 | col | (0x40 * row) );
+ 487               	.LM45:
+ 488 0116 6068      		ori r22,lo8(-128)
+ 489 0118 8295      		swap r24
+ 490 011a 880F      		lsl r24
+ 491 011c 880F      		lsl r24
+ 492 011e 807C      		andi r24,lo8(-64)
+ 493 0120 862B      		or r24,r22
+ 494 0122 00D0      		rcall lcd_set_char
+ 113:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_RS;
+ 496               	.LM46:
+ 497 0124 85B1      		in r24,37-32
+ 498 0126 8C27      		eor r24,r28
+ 499 0128 85B9      		out 37-32,r24
+ 500               	/* epilogue start */
+ 115:lcd.c         **** }
+ 502               	.LM47:
+ 503 012a CF91      		pop r28
+ 504 012c 0895      		ret
+ 506               	.Lscope4:
+ 508               	.global	lcd_set_str
+ 510               	lcd_set_str:
+ 126:lcd.c         **** 
+ 127:lcd.c         **** // LCD String Sending
+ 128:lcd.c         **** void lcd_set_str(unsigned char *s)
+ 129:lcd.c         **** {
+ 512               	.LM48:
+ 513               	.LFBB5:
+ 514 012e CF93      		push r28
+ 515 0130 DF93      		push r29
+ 516               	/* prologue: function */
+ 517               	/* frame size = 0 */
+ 518               	/* stack size = 2 */
+ 519               	.L__stack_usage = 2
+ 521               	.LM49:
+ 522 0132 EC01      		movw r28,r24
+ 130:lcd.c         **** //	cli();
+ 131:lcd.c         **** 	while (*s != 0) {
+ 524               	.LM50:
+ 525 0134 00C0      		rjmp .L6
+ 526               	.L7:
+ 132:lcd.c         **** 		lcd_set_char(*s);
+ 528               	.LM51:
+ 529 0136 00D0      		rcall lcd_set_char
+ 530               	.L6:
+ 131:lcd.c         **** 	while (*s != 0) {
+ 532               	.LM52:
+ 533 0138 8991      		ld r24,Y+
+ 534 013a 8823      		tst r24
+ 535 013c 01F4      		brne .L7
+ 536               	/* epilogue start */
+ 133:lcd.c         **** 		s++;
+ 134:lcd.c         **** 	} 
+ 135:lcd.c         **** //	sei();
+ 136:lcd.c         **** }
+ 538               	.LM53:
+ 539 013e DF91      		pop r29
+ 540 0140 CF91      		pop r28
+ 541 0142 0895      		ret
+ 543               	.Lscope5:
+ 549               	.global	lcd_set_numeric
+ 551               	lcd_set_numeric:
+ 137:lcd.c         **** 
+ 138:lcd.c         **** // Display numeric on LCD display
+ 139:lcd.c         **** void lcd_set_numeric(float num, unsigned int Nint, unsigned int Nfrac, unsigned int sign){
+ 553               	.LM54:
+ 554               	.LFBB6:
+ 555 0144 2F92      		push r2
+ 556 0146 3F92      		push r3
+ 557 0148 4F92      		push r4
+ 558 014a 5F92      		push r5
+ 559 014c 6F92      		push r6
+ 560 014e 7F92      		push r7
+ 561 0150 8F92      		push r8
+ 562 0152 9F92      		push r9
+ 563 0154 AF92      		push r10
+ 564 0156 BF92      		push r11
+ 565 0158 CF92      		push r12
+ 566 015a DF92      		push r13
+ 567 015c EF92      		push r14
+ 568 015e FF92      		push r15
+ 569 0160 0F93      		push r16
+ 570 0162 1F93      		push r17
+ 571 0164 CF93      		push r28
+ 572 0166 DF93      		push r29
+ 573 0168 CDB7      		in r28,__SP_L__
+ 574 016a DEB7      		in r29,__SP_H__
+ 575 016c 2897      		sbiw r28,8
+ 576 016e 0FB6      		in __tmp_reg__,__SREG__
+ 577 0170 F894      		cli
+ 578 0172 DEBF      		out __SP_H__,r29
+ 579 0174 0FBE      		out __SREG__,__tmp_reg__
+ 580 0176 CDBF      		out __SP_L__,r28
+ 581               	/* prologue: function */
+ 582               	/* frame size = 8 */
+ 583               	/* stack size = 26 */
+ 584               	.L__stack_usage = 26
+ 585 0178 6B01      		movw r12,r22
+ 586 017a 7C01      		movw r14,r24
+ 587 017c 1A01      		movw r2,r20
+ 588 017e 2901      		movw r4,r18
+ 140:lcd.c         ****     unsigned long int DivFactor = 1;
+ 141:lcd.c         ****     unsigned int n, m;
+ 142:lcd.c         ****     unsigned int d[10];
+ 143:lcd.c         ****     unsigned int valid = 0;
+ 144:lcd.c         ****     
+ 145:lcd.c         ****     for(n=0;n<Nfrac;n++){
+ 590               	.LM55:
+ 591 0180 80E0      		ldi r24,lo8(0)
+ 592 0182 90E0      		ldi r25,hi8(0)
+ 593 0184 4C01      		movw r8,r24
+ 594 0186 00C0      		rjmp .L9
+ 595               	.L10:
+ 146:lcd.c         ****         num = num * 10;
+ 597               	.LM56:
+ 598 0188 C701      		movw r24,r14
+ 599 018a B601      		movw r22,r12
+ 600 018c 20E0      		ldi r18,lo8(0x41200000)
+ 601 018e 30E0      		ldi r19,hi8(0x41200000)
+ 602 0190 40E2      		ldi r20,hlo8(0x41200000)
+ 603 0192 51E4      		ldi r21,hhi8(0x41200000)
+ 604 0194 00D0      		rcall __mulsf3
+ 605 0196 C62E      		mov r12,r22
+ 606 0198 D72E      		mov r13,r23
+ 607 019a E82E      		mov r14,r24
+ 608 019c F92E      		mov r15,r25
+ 145:lcd.c         ****     for(n=0;n<Nfrac;n++){
+ 610               	.LM57:
+ 611 019e 0894      		sec
+ 612 01a0 811C      		adc r8,__zero_reg__
+ 613 01a2 911C      		adc r9,__zero_reg__
+ 614               	.L9:
+ 145:lcd.c         ****     for(n=0;n<Nfrac;n++){
+ 616               	.LM58:
+ 617 01a4 8414      		cp r8,r4
+ 618 01a6 9504      		cpc r9,r5
+ 619 01a8 01F4      		brne .L10
+ 147:lcd.c         ****     }
+ 148:lcd.c         ****     
+ 149:lcd.c         ****     // Detect sign
+ 150:lcd.c         ****     if( sign == 1){
+ 621               	.LM59:
+ 622 01aa 0130      		cpi r16,1
+ 623 01ac 1105      		cpc r17,__zero_reg__
+ 624 01ae 01F4      		brne .L11
+ 151:lcd.c         ****         if( num < 0 ){
+ 626               	.LM60:
+ 627 01b0 C701      		movw r24,r14
+ 628 01b2 B601      		movw r22,r12
+ 629 01b4 20E0      		ldi r18,lo8(0x0)
+ 630 01b6 30E0      		ldi r19,hi8(0x0)
+ 631 01b8 A901      		movw r20,r18
+ 632 01ba 00D0      		rcall __ltsf2
+ 633 01bc 87FF      		sbrs r24,7
+ 634 01be 00C0      		rjmp .L29
+ 152:lcd.c         ****             lcd_set_char('-');
+ 636               	.LM61:
+ 637 01c0 8DE2      		ldi r24,lo8(45)
+ 638 01c2 00D0      		rcall lcd_set_char
+ 153:lcd.c         ****             num = -num;
+ 640               	.LM62:
+ 641 01c4 F7FA      		bst r15,7
+ 642 01c6 F094      		com r15
+ 643 01c8 F7F8      		bld r15,7
+ 644 01ca F094      		com r15
+ 645               	.L11:
+ 154:lcd.c         ****         }else{
+ 155:lcd.c         ****             lcd_set_char('+');
+ 156:lcd.c         ****         }
+ 157:lcd.c         ****     }
+ 158:lcd.c         ****     // end of
+ 159:lcd.c         **** 				
+ 160:lcd.c         ****     for(n=0;n<=Nint+Nfrac-1;n++){
+ 161:lcd.c         ****         
+ 162:lcd.c         ****         if( ( n== Nint ) && ( Nfrac!=0 )){
+ 163:lcd.c         ****             lcd_set_char('.');
+ 164:lcd.c         ****         }
+ 165:lcd.c         ****         
+ 166:lcd.c         ****         DivFactor = 1;
+ 167:lcd.c         ****         for(m=n+1;m<Nint+Nfrac;m++){
+ 168:lcd.c         ****             DivFactor = DivFactor * 10;
+ 169:lcd.c         ****         }
+ 170:lcd.c         ****         
+ 171:lcd.c         ****         d[n] = (unsigned int)( num / DivFactor );
+ 172:lcd.c         ****         if( (valid == 0) && ( d[n]!=0 || n==Nint-1) ) valid = 1;
+ 647               	.LM63:
+ 648 01cc 00E0      		ldi r16,lo8(0)
+ 649 01ce 10E0      		ldi r17,hi8(0)
+ 650 01d0 6624      		clr r6
+ 651 01d2 7724      		clr r7
+ 160:lcd.c         ****     for(n=0;n<=Nint+Nfrac-1;n++){
+ 653               	.LM64:
+ 654 01d4 9201      		movw r18,r4
+ 655 01d6 220D      		add r18,r2
+ 656 01d8 331D      		adc r19,r3
+ 657 01da 3A83      		std Y+2,r19
+ 658 01dc 2983      		std Y+1,r18
+ 659 01de 2150      		subi r18,lo8(-(-1))
+ 660 01e0 3040      		sbci r19,hi8(-(-1))
+ 661 01e2 3C83      		std Y+4,r19
+ 662 01e4 2B83      		std Y+3,r18
+ 664               	.LM65:
+ 665 01e6 C101      		movw r24,r2
+ 666 01e8 0197      		sbiw r24,1
+ 667 01ea 9E83      		std Y+6,r25
+ 668 01ec 8D83      		std Y+5,r24
+ 669 01ee 7886      		std Y+8,r7
+ 670 01f0 6F82      		std Y+7,r6
+ 671 01f2 00C0      		rjmp .L14
+ 672               	.L29:
+ 155:lcd.c         ****             lcd_set_char('+');
+ 674               	.LM66:
+ 675 01f4 8BE2      		ldi r24,lo8(43)
+ 676 01f6 00D0      		rcall lcd_set_char
+ 677 01f8 00C0      		rjmp .L11
+ 678               	.L24:
+ 162:lcd.c         ****         if( ( n== Nint ) && ( Nfrac!=0 )){
+ 680               	.LM67:
+ 681 01fa 0215      		cp r16,r2
+ 682 01fc 1305      		cpc r17,r3
+ 683 01fe 01F4      		brne .L15
+ 162:lcd.c         ****         if( ( n== Nint ) && ( Nfrac!=0 )){
+ 685               	.LM68:
+ 686 0200 4114      		cp r4,__zero_reg__
+ 687 0202 5104      		cpc r5,__zero_reg__
+ 688 0204 01F0      		breq .L15
+ 163:lcd.c         ****             lcd_set_char('.');
+ 690               	.LM69:
+ 691 0206 8EE2      		ldi r24,lo8(46)
+ 692 0208 00D0      		rcall lcd_set_char
+ 693               	.L15:
+ 167:lcd.c         ****         for(m=n+1;m<Nint+Nfrac;m++){
+ 695               	.LM70:
+ 696 020a 3801      		movw r6,r16
+ 166:lcd.c         ****         DivFactor = 1;
+ 698               	.LM71:
+ 699 020c 81E0      		ldi r24,lo8(1)
+ 700 020e 882E      		mov r8,r24
+ 701 0210 912C      		mov r9,__zero_reg__
+ 702 0212 A12C      		mov r10,__zero_reg__
+ 703 0214 B12C      		mov r11,__zero_reg__
+ 704 0216 C501      		movw r24,r10
+ 705 0218 B401      		movw r22,r8
+ 167:lcd.c         ****         for(m=n+1;m<Nint+Nfrac;m++){
+ 707               	.LM72:
+ 708 021a 00C0      		rjmp .L16
+ 709               	.L17:
+ 168:lcd.c         ****             DivFactor = DivFactor * 10;
+ 711               	.LM73:
+ 712 021c 2AE0      		ldi r18,lo8(10)
+ 713 021e 30E0      		ldi r19,hi8(10)
+ 714 0220 40E0      		ldi r20,hlo8(10)
+ 715 0222 50E0      		ldi r21,hhi8(10)
+ 716 0224 00D0      		rcall __mulsi3
+ 717               	.L16:
+ 168:lcd.c         ****             DivFactor = DivFactor * 10;
+ 719               	.LM74:
+ 720 0226 0894      		sec
+ 721 0228 611C      		adc r6,__zero_reg__
+ 722 022a 711C      		adc r7,__zero_reg__
+ 167:lcd.c         ****         for(m=n+1;m<Nint+Nfrac;m++){
+ 724               	.LM75:
+ 725 022c E981      		ldd r30,Y+1
+ 726 022e FA81      		ldd r31,Y+2
+ 727 0230 6E16      		cp r6,r30
+ 728 0232 7F06      		cpc r7,r31
+ 729 0234 00F0      		brlo .L17
+ 730 0236 4B01      		movw r8,r22
+ 731 0238 5C01      		movw r10,r24
+ 171:lcd.c         ****         d[n] = (unsigned int)( num / DivFactor );
+ 733               	.LM76:
+ 734 023a 00D0      		rcall __floatunsisf
+ 735 023c 9B01      		movw r18,r22
+ 736 023e AC01      		movw r20,r24
+ 737 0240 C701      		movw r24,r14
+ 738 0242 B601      		movw r22,r12
+ 739 0244 00D0      		rcall __divsf3
+ 740 0246 00D0      		rcall __fixunssfsi
+ 741 0248 DC01      		movw r26,r24
+ 742 024a CB01      		movw r24,r22
+ 743 024c 3C01      		movw r6,r24
+ 745               	.LM77:
+ 746 024e 2F81      		ldd r18,Y+7
+ 747 0250 3885      		ldd r19,Y+8
+ 748 0252 2115      		cp r18,__zero_reg__
+ 749 0254 3105      		cpc r19,__zero_reg__
+ 750 0256 01F4      		brne .L25
+ 752               	.LM78:
+ 753 0258 81E0      		ldi r24,lo8(1)
+ 754 025a 90E0      		ldi r25,hi8(1)
+ 755 025c 9887      		std Y+8,r25
+ 756 025e 8F83      		std Y+7,r24
+ 757 0260 6114      		cp r6,__zero_reg__
+ 758 0262 7104      		cpc r7,__zero_reg__
+ 759 0264 01F4      		brne .L18
+ 761               	.LM79:
+ 762 0266 ED81      		ldd r30,Y+5
+ 763 0268 FE81      		ldd r31,Y+6
+ 764 026a 0E17      		cp r16,r30
+ 765 026c 1F07      		cpc r17,r31
+ 766 026e 01F0      		breq .L18
+ 767 0270 1886      		std Y+8,__zero_reg__
+ 768 0272 1F82      		std Y+7,__zero_reg__
+ 769 0274 00C0      		rjmp .L18
+ 770               	.L25:
+ 772               	.LM80:
+ 773 0276 21E0      		ldi r18,lo8(1)
+ 774 0278 30E0      		ldi r19,hi8(1)
+ 775 027a 3887      		std Y+8,r19
+ 776 027c 2F83      		std Y+7,r18
+ 777               	.L18:
+ 173:lcd.c         ****         num = num - d[n]*DivFactor;
+ 779               	.LM81:
+ 780 027e B301      		movw r22,r6
+ 781 0280 80E0      		ldi r24,lo8(0)
+ 782 0282 90E0      		ldi r25,hi8(0)
+ 783 0284 A501      		movw r20,r10
+ 784 0286 9401      		movw r18,r8
+ 785 0288 00D0      		rcall __mulsi3
+ 786 028a 00D0      		rcall __floatunsisf
+ 787 028c 9B01      		movw r18,r22
+ 788 028e AC01      		movw r20,r24
+ 789 0290 C701      		movw r24,r14
+ 790 0292 B601      		movw r22,r12
+ 791 0294 00D0      		rcall __subsf3
+ 792 0296 6B01      		movw r12,r22
+ 793 0298 E82E      		mov r14,r24
+ 794 029a F92E      		mov r15,r25
+ 174:lcd.c         ****         
+ 175:lcd.c         ****         if( (valid == 1)|(n == (Nint+Nfrac-1)) ) lcd_set_char(0x30 + d[n]);
+ 796               	.LM82:
+ 797 029c EF81      		ldd r30,Y+7
+ 798 029e F885      		ldd r31,Y+8
+ 799 02a0 3097      		sbiw r30,0
+ 800 02a2 01F4      		brne .L28
+ 801 02a4 2B81      		ldd r18,Y+3
+ 802 02a6 3C81      		ldd r19,Y+4
+ 803 02a8 0217      		cp r16,r18
+ 804 02aa 1307      		cpc r17,r19
+ 805 02ac 01F4      		brne .L30
+ 806               	.L28:
+ 808               	.LM83:
+ 809 02ae 862D      		mov r24,r6
+ 810 02b0 805D      		subi r24,lo8(-(48))
+ 811 02b2 00C0      		rjmp .L31
+ 812               	.L30:
+ 176:lcd.c         ****         else if( valid == 0 )                   lcd_set_char(0x20);
+ 814               	.LM84:
+ 815 02b4 80E2      		ldi r24,lo8(32)
+ 816               	.L31:
+ 817 02b6 00D0      		rcall lcd_set_char
+ 818 02b8 0F5F      		subi r16,lo8(-(1))
+ 819 02ba 1F4F      		sbci r17,hi8(-(1))
+ 820               	.L14:
+ 160:lcd.c         ****     for(n=0;n<=Nint+Nfrac-1;n++){
+ 822               	.LM85:
+ 823 02bc 8B81      		ldd r24,Y+3
+ 824 02be 9C81      		ldd r25,Y+4
+ 825 02c0 8017      		cp r24,r16
+ 826 02c2 9107      		cpc r25,r17
+ 827 02c4 00F0      		brlo .+2
+ 828 02c6 00C0      		rjmp .L24
+ 829               	/* epilogue start */
+ 177:lcd.c         ****         else                                    lcd_set_char(0xff);
+ 178:lcd.c         ****     }
+ 179:lcd.c         **** }
+ 831               	.LM86:
+ 832 02c8 2896      		adiw r28,8
+ 833 02ca 0FB6      		in __tmp_reg__,__SREG__
+ 834 02cc F894      		cli
+ 835 02ce DEBF      		out __SP_H__,r29
+ 836 02d0 0FBE      		out __SREG__,__tmp_reg__
+ 837 02d2 CDBF      		out __SP_L__,r28
+ 838 02d4 DF91      		pop r29
+ 839 02d6 CF91      		pop r28
+ 840 02d8 1F91      		pop r17
+ 841 02da 0F91      		pop r16
+ 842 02dc FF90      		pop r15
+ 843 02de EF90      		pop r14
+ 844 02e0 DF90      		pop r13
+ 845 02e2 CF90      		pop r12
+ 846 02e4 BF90      		pop r11
+ 847 02e6 AF90      		pop r10
+ 848 02e8 9F90      		pop r9
+ 849 02ea 8F90      		pop r8
+ 850 02ec 7F90      		pop r7
+ 851 02ee 6F90      		pop r6
+ 852 02f0 5F90      		pop r5
+ 853 02f2 4F90      		pop r4
+ 854 02f4 3F90      		pop r3
+ 855 02f6 2F90      		pop r2
+ 856 02f8 0895      		ret
+ 863               	.Lscope6:
+ 865               	.global	lcd_clear
+ 867               	lcd_clear:
+ 180:lcd.c         **** 
+ 181:lcd.c         **** // clear display
+ 182:lcd.c         **** void lcd_clear(){
+ 869               	.LM87:
+ 870               	.LFBB7:
+ 871 02fa CF93      		push r28
+ 872               	/* prologue: function */
+ 873               	/* frame size = 0 */
+ 874               	/* stack size = 1 */
+ 875               	.L__stack_usage = 1
+ 183:lcd.c         **** //	cli();
+ 184:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_RS;
+ 877               	.LM88:
+ 878 02fc 85B1      		in r24,37-32
+ 879 02fe C2E0      		ldi r28,lo8(2)
+ 880 0300 8C27      		eor r24,r28
+ 881 0302 85B9      		out 37-32,r24
+ 185:lcd.c         **** 	lcd_set_4bit(0x00);
+ 883               	.LM89:
+ 884 0304 80E0      		ldi r24,lo8(0)
+ 885 0306 00D0      		rcall lcd_set_4bit
+ 186:lcd.c         **** 	lcd_set_4bit(0x01);
+ 887               	.LM90:
+ 888 0308 81E0      		ldi r24,lo8(1)
+ 889 030a 00D0      		rcall lcd_set_4bit
+ 890               	.LBB56:
+ 891               	.LBB57:
+ 893               	.Ltext27:
+ 164:/usr/local/CrossPack-AVR-20121207/lib/gcc/avr/4.6.2/../../../../avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 895               	.LM91:
+ 896 030c 8FE3      		 ldi r24,lo8(7999)
+ 897 030e 9FE1      	    ldi r25,hi8(7999)
+ 898 0310 0197      	    1:sbiw r24,1
+ 899 0312 01F4      	    brne 1b
+ 900 0314 00C0      		rjmp .
+ 901 0316 0000      		nop
+ 902               	.LBE57:
+ 903               	.LBE56:
+ 905               	.Ltext28:
+ 187:lcd.c         **** 	_delay_ms(2);
+ 188:lcd.c         **** 	LCD_PORT_E_RS	^= LCD_RS;
+ 907               	.LM92:
+ 908 0318 85B1      		in r24,37-32
+ 909 031a 8C27      		eor r24,r28
+ 910 031c 85B9      		out 37-32,r24
+ 189:lcd.c         **** 	lcd_locate(0,0);
+ 912               	.LM93:
+ 913 031e 80E0      		ldi r24,lo8(0)
+ 914 0320 60E0      		ldi r22,lo8(0)
+ 915 0322 00D0      		rcall lcd_locate
+ 916               	/* epilogue start */
+ 190:lcd.c         **** //	sei();
+ 191:lcd.c         **** }
+ 918               	.LM94:
+ 919 0324 CF91      		pop r28
+ 920 0326 0895      		ret
+ 922               	.Lscope7:
+ 926               	.global	lcd_set_CGRAMaddr
+ 928               	lcd_set_CGRAMaddr:
+ 192:lcd.c         **** 
+ 193:lcd.c         **** 
+ 194:lcd.c         **** // Set CGRAM address
+ 195:lcd.c         **** void lcd_set_CGRAMaddr(unsigned char code,unsigned char addr)
+ 196:lcd.c         **** {
+ 930               	.LM95:
+ 931               	.LFBB8:
+ 932 0328 CF93      		push r28
+ 933               	/* prologue: function */
+ 934               	/* frame size = 0 */
+ 935               	/* stack size = 1 */
+ 936               	.L__stack_usage = 1
+ 197:lcd.c         ****     // set instruction input mode
+ 198:lcd.c         ****     LCD_PORT_E_RS	^= LCD_RS;
+ 938               	.LM96:
+ 939 032a 95B1      		in r25,37-32
+ 940 032c C2E0      		ldi r28,lo8(2)
+ 941 032e 9C27      		eor r25,r28
+ 942 0330 95B9      		out 37-32,r25
+ 199:lcd.c         ****     lcd_set_char(0x40 | code<<3 | addr );
+ 944               	.LM97:
+ 945 0332 6064      		ori r22,lo8(64)
+ 946 0334 880F      		lsl r24
+ 947 0336 880F      		lsl r24
+ 948 0338 880F      		lsl r24
+ 949 033a 862B      		or r24,r22
+ 950 033c 00D0      		rcall lcd_set_char
+ 200:lcd.c         ****     // set data input mode
+ 201:lcd.c         ****     LCD_PORT_E_RS	^= LCD_RS;
+ 952               	.LM98:
+ 953 033e 85B1      		in r24,37-32
+ 954 0340 8C27      		eor r24,r28
+ 955 0342 85B9      		out 37-32,r24
+ 956               	/* epilogue start */
+ 202:lcd.c         **** }
+ 958               	.LM99:
+ 959 0344 CF91      		pop r28
+ 960 0346 0895      		ret
+ 962               	.Lscope8:
+ 964               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 lcd.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:108    .text:00000000 lcd_set_4bit
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:167    .text:00000022 lcd_init
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:423    .text:000000ec lcd_set_char
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:471    .text:0000010c lcd_locate
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:510    .text:0000012e lcd_set_str
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:551    .text:00000144 lcd_set_numeric
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:867    .text:000002fa lcd_clear
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccKJjSGo.s:928    .text:00000328 lcd_set_CGRAMaddr
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+__mulsf3
+__ltsf2
+__mulsi3
+__floatunsisf
+__divsf3
+__fixunssfsi
+__subsf3

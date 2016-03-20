@@ -1,0 +1,276 @@
+   1               		.file	"usart.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	USARTinit
+ 107               	USARTinit:
+   1:usart.c       **** // USART transmission Functions
+   2:usart.c       **** 
+   3:usart.c       **** #include <avr/io.h>
+   4:usart.c       **** #include <avr/delay.h>
+   5:usart.c       **** #include "usart.h"
+   6:usart.c       **** #define USART_STATUS UCSR0A
+   7:usart.c       **** 
+   8:usart.c       **** /*
+   9:usart.c       **** -- You should define variables in your source code --
+  10:usart.c       **** #define FOSC 8000000 // Clock Speed 
+  11:usart.c       **** #define BAUD   19200 
+  12:usart.c       **** #define UBRR FOSC/16/BAUD-1 
+  13:usart.c       **** */
+  14:usart.c       **** 
+  15:usart.c       **** // USART initialize
+  16:usart.c       **** void USARTinit(unsigned int ubrr){
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111               	/* prologue: function */
+ 112               	/* frame size = 0 */
+ 113               	/* stack size = 0 */
+ 114               	.L__stack_usage = 0
+  17:usart.c       **** 	UBRR0H = (unsigned char)(ubrr>>8);
+ 116               	.LM1:
+ 117 0000 9093 C500 		sts 197,r25
+  18:usart.c       **** 	UBRR0L = (unsigned char)ubrr;
+ 119               	.LM2:
+ 120 0004 8093 C400 		sts 196,r24
+  19:usart.c       **** 	
+  20:usart.c       **** 	unsigned int Mode= 0b00;	// USART mode select
+  21:usart.c       **** 								//   '00' : Asynchronous
+  22:usart.c       **** 								//   '01' : Synchronous
+  23:usart.c       **** 	unsigned int Pari= 0b10;	// Parity mode select
+  24:usart.c       **** 								//   '00': No parity
+  25:usart.c       **** 								//   '10': Even parity
+  26:usart.c       **** 								//   '11': Odd parity
+  27:usart.c       **** 	unsigned int STPB= 0b0;		// Stop bit length
+  28:usart.c       **** 								//   '0' : 1-bit
+  29:usart.c       **** 								//   '1' : 2-bit
+  30:usart.c       **** 	unsigned int CLKE= 0b0;		// Clock edge for sampling
+  31:usart.c       **** 								//  *This bit must be set '0' in Asynchronous mode 
+  32:usart.c       **** 								//   '0' : Negative 
+  33:usart.c       **** 								//   '1' : Positive
+  34:usart.c       **** 	unsigned int RCIE= 0b1;		// Receive complete interuput enable
+  35:usart.c       **** 	unsigned int TCIE= 0b0;		// Transmit complete interuput enable
+  36:usart.c       **** 	unsigned int TRIE= 0b0;		// Transmit Data register empty interrupt enable
+  37:usart.c       **** 	unsigned int RE  = 0b1;		// Receive enable
+  38:usart.c       **** 	unsigned int TE  = 0b0;		// Transmit enable
+  39:usart.c       **** 	unsigned int Nb  = 0b011;	// Number of bit per packet
+  40:usart.c       **** 								//   '000' : 5bit
+  41:usart.c       **** 								//   '001' : 6bit
+  42:usart.c       **** 								//   '010' : 7bit
+  43:usart.c       **** 								//   '011' : 8bit
+  44:usart.c       **** 	unsigned int U2X = 0;		// Over clocking operation
+  45:usart.c       **** 	UCSR0B = (RCIE<<7)|(TCIE<<6)|(TRIE<<5)|(RE<<4)|(TE<<3)|((Nb>>2)<<2);
+ 122               	.LM3:
+ 123 0008 80E9      		ldi r24,lo8(-112)
+ 124 000a 8093 C100 		sts 193,r24
+  46:usart.c       **** 	UCSR0C = (Mode<<6)|(Pari<<4)|(STPB<<3)|(Nb<<1)|(CLKE);
+ 126               	.LM4:
+ 127 000e 86E2      		ldi r24,lo8(38)
+ 128 0010 8093 C200 		sts 194,r24
+  47:usart.c       **** 	UCSR0A = U2X<<1;
+ 130               	.LM5:
+ 131 0014 1092 C000 		sts 192,__zero_reg__
+ 132               	/* epilogue start */
+  48:usart.c       **** }
+ 134               	.LM6:
+ 135 0018 0895      		ret
+ 137               	.Lscope1:
+ 140               	.global	USART_transmit
+ 142               	USART_transmit:
+  49:usart.c       **** 
+  50:usart.c       **** // USART transmit
+  51:usart.c       **** void USART_transmit(unsigned char data){
+ 144               	.LM7:
+ 145               	.LFBB2:
+ 146               	/* prologue: function */
+ 147               	/* frame size = 0 */
+ 148               	/* stack size = 0 */
+ 149               	.L__stack_usage = 0
+ 150               	.L3:
+  52:usart.c       **** 	while(!(USART_STATUS & (1<<UDRE0)));	// Wait until tx buffer is empty
+ 152               	.LM8:
+ 153 001a 9091 C000 		lds r25,192
+ 154 001e 95FF      		sbrs r25,5
+ 155 0020 00C0      		rjmp .L3
+  53:usart.c       **** 	UDR0 = data;
+ 157               	.LM9:
+ 158 0022 8093 C600 		sts 198,r24
+ 159               	/* epilogue start */
+  54:usart.c       **** }
+ 161               	.LM10:
+ 162 0026 0895      		ret
+ 164               	.Lscope2:
+ 166               	.global	USART_receive
+ 168               	USART_receive:
+  55:usart.c       **** 
+  56:usart.c       **** 
+  57:usart.c       **** // USART receive without wait & Error rejection
+  58:usart.c       **** unsigned char USART_receive(void){
+ 170               	.LM11:
+ 171               	.LFBB3:
+ 172               	/* prologue: function */
+ 173               	/* frame size = 0 */
+ 174               	/* stack size = 0 */
+ 175               	.L__stack_usage = 0
+  59:usart.c       **** 	return UDR0;
+ 177               	.LM12:
+ 178 0028 8091 C600 		lds r24,198
+ 179               	/* epilogue start */
+  60:usart.c       **** }
+ 181               	.LM13:
+ 182 002c 0895      		ret
+ 184               	.Lscope3:
+ 186               	.global	USART_receive_woTO
+ 188               	USART_receive_woTO:
+  61:usart.c       **** 
+  62:usart.c       **** // USART receive w/o. Time-out
+  63:usart.c       **** unsigned char USART_receive_woTO(void){
+ 190               	.LM14:
+ 191               	.LFBB4:
+ 192               	/* prologue: function */
+ 193               	/* frame size = 0 */
+ 194               	/* stack size = 0 */
+ 195               	.L__stack_usage = 0
+ 196               	.L7:
+  64:usart.c       **** 	unsigned char error_data;
+  65:usart.c       **** 	while(!(USART_STATUS & (1<<RXC0)));	// Wait receive process
+ 198               	.LM15:
+ 199 002e 8091 C000 		lds r24,192
+ 200 0032 87FF      		sbrs r24,7
+ 201 0034 00C0      		rjmp .L7
+  66:usart.c       **** 	if ( !( ( USART_STATUS & (1<< FE0))
+ 203               	.LM16:
+ 204 0036 2091 C000 		lds r18,192
+  67:usart.c       **** 	      | ( USART_STATUS & (1<<UPE0)) ) ){	// detect framing & parity error
+ 206               	.LM17:
+ 207 003a 8091 C000 		lds r24,192
+ 208 003e 90E0      		ldi r25,lo8(0)
+ 209 0040 8470      		andi r24,lo8(4)
+ 210 0042 9070      		andi r25,hi8(4)
+  66:usart.c       **** 	if ( !( ( USART_STATUS & (1<< FE0))
+ 212               	.LM18:
+ 213 0044 30E0      		ldi r19,lo8(0)
+ 214 0046 2071      		andi r18,lo8(16)
+ 215 0048 3070      		andi r19,hi8(16)
+ 217               	.LM19:
+ 218 004a 822B      		or r24,r18
+ 219 004c 932B      		or r25,r19
+  66:usart.c       **** 	if ( !( ( USART_STATUS & (1<< FE0))
+ 221               	.LM20:
+ 222 004e 0097      		sbiw r24,0
+ 223 0050 01F4      		brne .L8
+  68:usart.c       **** 		return UDR0;
+ 225               	.LM21:
+ 226 0052 8091 C600 		lds r24,198
+ 227 0056 0895      		ret
+ 228               	.L8:
+  69:usart.c       **** 	}else{
+  70:usart.c       **** 		error_data = UDR0;
+ 230               	.LM22:
+ 231 0058 8091 C600 		lds r24,198
+  71:usart.c       **** 		return 0xff;
+ 233               	.LM23:
+ 234 005c 8FEF      		ldi r24,lo8(-1)
+  72:usart.c       **** 	}
+  73:usart.c       **** }
+ 236               	.LM24:
+ 237 005e 0895      		ret
+ 242               	.Lscope4:
+ 244               	.global	USART_receive_wTO
+ 246               	USART_receive_wTO:
+  74:usart.c       **** 
+  75:usart.c       **** // USART receive w. Time-out
+  76:usart.c       **** unsigned char USART_receive_wTO(void){
+ 248               	.LM25:
+ 249               	.LFBB5:
+ 250               	/* prologue: function */
+ 251               	/* frame size = 0 */
+ 252               	/* stack size = 0 */
+ 253               	.L__stack_usage = 0
+ 255               	.LM26:
+ 256 0060 80E0      		ldi r24,lo8(1280)
+ 257 0062 95E0      		ldi r25,hi8(1280)
+ 258               	.L15:
+  77:usart.c       **** 	unsigned char error_data;
+  78:usart.c       **** 	unsigned int n = 0;
+  79:usart.c       **** 	unsigned int m = 0;
+  80:usart.c       **** 	
+  81:usart.c       **** 	for(n=0;n<1280;n++){
+  82:usart.c       **** 		if( (USART_STATUS & (1<<RXC0)) ){
+ 260               	.LM27:
+ 261 0064 2091 C000 		lds r18,192
+ 262 0068 27FF      		sbrs r18,7
+ 263 006a 00C0      		rjmp .L12
+  83:usart.c       **** 			if ( !( ( USART_STATUS & (1<< FE0))
+ 265               	.LM28:
+ 266 006c 2091 C000 		lds r18,192
+  84:usart.c       **** 				   | ( USART_STATUS & (1<<UPE0)) ) ){	// detect framing & parity error
+ 268               	.LM29:
+ 269 0070 8091 C000 		lds r24,192
+ 270 0074 90E0      		ldi r25,lo8(0)
+ 271 0076 8470      		andi r24,lo8(4)
+ 272 0078 9070      		andi r25,hi8(4)
+  83:usart.c       **** 			if ( !( ( USART_STATUS & (1<< FE0))
+ 274               	.LM30:
+ 275 007a 30E0      		ldi r19,lo8(0)
+ 276 007c 2071      		andi r18,lo8(16)
+ 277 007e 3070      		andi r19,hi8(16)
+ 279               	.LM31:
+ 280 0080 822B      		or r24,r18
+ 281 0082 932B      		or r25,r19
+  83:usart.c       **** 			if ( !( ( USART_STATUS & (1<< FE0))
+ 283               	.LM32:
+ 284 0084 0097      		sbiw r24,0
+ 285 0086 01F4      		brne .L13
+  85:usart.c       **** 				return UDR0;
+ 287               	.LM33:
+ 288 0088 8091 C600 		lds r24,198
+ 289 008c 0895      		ret
+ 290               	.L13:
+  86:usart.c       **** 			}else{
+  87:usart.c       **** 				error_data = UDR0;
+ 292               	.LM34:
+ 293 008e 8091 C600 		lds r24,198
+  88:usart.c       **** 				return 0xff;
+ 295               	.LM35:
+ 296 0092 8FEF      		ldi r24,lo8(-1)
+ 297 0094 0895      		ret
+ 298               	.L12:
+ 299 0096 0197      		sbiw r24,1
+  81:usart.c       **** 	for(n=0;n<1280;n++){
+ 301               	.LM36:
+ 302 0098 01F4      		brne .L15
+  89:usart.c       **** 			}
+  90:usart.c       **** 		}
+  91:usart.c       **** 	}
+  92:usart.c       **** 	return 0xff;
+ 304               	.LM37:
+ 305 009a 8FEF      		ldi r24,lo8(-1)
+  93:usart.c       **** }
+ 307               	.LM38:
+ 308 009c 0895      		ret
+ 313               	.Lscope5:
+ 315               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 usart.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:107    .text:00000000 USARTinit
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:142    .text:0000001a USART_transmit
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:168    .text:00000028 USART_receive
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:188    .text:0000002e USART_receive_woTO
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//ccbCPi8X.s:246    .text:00000060 USART_receive_wTO
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss

@@ -1,0 +1,77 @@
+   1               		.file	"ADC.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	ADC_init
+ 107               	ADC_init:
+   1:ADC.c         **** //
+   2:ADC.c         **** //  ADC.c
+   3:ADC.c         **** //  MFM_rev6
+   4:ADC.c         **** //
+   5:ADC.c         **** //  Created by imashio on 12/3/14.
+   6:ADC.c         **** //
+   7:ADC.c         **** //
+   8:ADC.c         **** 
+   9:ADC.c         **** #include <avr/io.h>
+  10:ADC.c         **** 
+  11:ADC.c         **** #include "ADC.h"
+  12:ADC.c         **** 
+  13:ADC.c         **** void ADC_init(){
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111               	/* prologue: function */
+ 112               	/* frame size = 0 */
+ 113               	/* stack size = 0 */
+ 114               	.L__stack_usage = 0
+  14:ADC.c         ****     
+  15:ADC.c         ****     ADMUX   = 0b00100000;
+ 116               	.LM1:
+ 117 0000 80E2      		ldi r24,lo8(32)
+ 118 0002 8093 7C00 		sts 124,r24
+  16:ADC.c         ****     //
+  17:ADC.c         ****     
+  18:ADC.c         ****     ADCSRA  = 0b11100111;
+ 120               	.LM2:
+ 121 0006 87EE      		ldi r24,lo8(-25)
+ 122 0008 8093 7A00 		sts 122,r24
+  19:ADC.c         ****     // bit 7    ADEN (ADC enable)
+  20:ADC.c         ****     // bit 6    ADSC (ADC start conversion)
+  21:ADC.c         ****     //              this bit will set 0 after conversion
+  22:ADC.c         ****     //              must set 1 to AD conversion
+  23:ADC.c         ****     // bit 5    ADATE (ADC Auto Trigger enable)
+  24:ADC.c         ****     // bit 4    ADIF (ADC Interrput flag)
+  25:ADC.c         ****     // bit 3    ADIF (ADC Interrput enable)
+  26:ADC.c         ****     // bit 2:0  ADPS (ADC Prescaler Select Bits)
+  27:ADC.c         ****     
+  28:ADC.c         ****     ADCSRB  = 0b00000000;
+ 124               	.LM3:
+ 125 000c 1092 7B00 		sts 123,__zero_reg__
+ 126               	/* epilogue start */
+  29:ADC.c         ****     // bit 2:0  ADTS (ADC Auto Trigger Source)
+  30:ADC.c         ****     //          000 continuous
+  31:ADC.c         ****     
+  32:ADC.c         **** }...
+ 128               	.LM4:
+ 129 0010 0895      		ret
+ 131               	.Lscope1:
+ 133               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 ADC.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cclp8Soi.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cclp8Soi.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cclp8Soi.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cclp8Soi.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cclp8Soi.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cclp8Soi.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cclp8Soi.s:107    .text:00000000 ADC_init
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss

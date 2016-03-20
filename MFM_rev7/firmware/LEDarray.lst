@@ -1,0 +1,286 @@
+   1               		.file	"LEDarray.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 105               	.global	LEDarray_init
+ 107               	LEDarray_init:
+   1:LEDarray.c    **** //
+   2:LEDarray.c    **** //  LEDarray.c
+   3:LEDarray.c    **** //  MFM_rev3
+   4:LEDarray.c    **** //
+   5:LEDarray.c    **** //  Created by imashio on 11/6/14.
+   6:LEDarray.c    **** //
+   7:LEDarray.c    **** //
+   8:LEDarray.c    **** 
+   9:LEDarray.c    **** #include <avr/io.h>
+  10:LEDarray.c    **** #include <util/delay.h>
+  11:LEDarray.c    **** #include <avr/interrupt.h>
+  12:LEDarray.c    **** #include "ledarray_595_softspi.h"
+  13:LEDarray.c    **** #include "LEDarray.h"
+  14:LEDarray.c    **** 
+  15:LEDarray.c    **** // LED Array
+  16:LEDarray.c    **** #define RPM_LOW         4000
+  17:LEDarray.c    **** #define RPM_HIGH        7000
+  18:LEDarray.c    **** #define RPM_FLASH       7000
+  19:LEDarray.c    **** #define Narray          8
+  20:LEDarray.c    **** #define Nstep           1
+  21:LEDarray.c    **** 
+  22:LEDarray.c    **** #define LEDarrayDuty_L  8   // NORMAL
+  23:LEDarray.c    **** #define LEDarrayDuty_H  64  // MAX for FLASH
+  24:LEDarray.c    **** 
+  25:LEDarray.c    **** #define FLASH_SPEED     25
+  26:LEDarray.c    **** 
+  27:LEDarray.c    **** // LED Array Variables Declaration
+  28:LEDarray.c    **** unsigned int            LED_scale;
+  29:LEDarray.c    **** unsigned int            rpm_disp = 0;
+  30:LEDarray.c    **** 
+  31:LEDarray.c    **** unsigned int            flash = 0xff;
+  32:LEDarray.c    **** unsigned int            flash_cnt = 0;
+  33:LEDarray.c    **** 
+  34:LEDarray.c    **** unsigned int            RPM_DIFF;
+  35:LEDarray.c    **** 
+  36:LEDarray.c    **** unsigned int LEDarray_init(){
+ 109               	.LM0:
+ 110               	.LFBB1:
+ 111               	/* prologue: function */
+ 112               	/* frame size = 0 */
+ 113               	/* stack size = 0 */
+ 114               	.L__stack_usage = 0
+  37:LEDarray.c    **** //void  LEDarray_init(){
+  38:LEDarray.c    ****     RPM_DIFF = (float)( RPM_HIGH - RPM_LOW )/(float)(Narray/Nstep);
+ 116               	.LM1:
+ 117 0000 87E7      		ldi r24,lo8(375)
+ 118 0002 91E0      		ldi r25,hi8(375)
+ 119 0004 9093 0000 		sts RPM_DIFF+1,r25
+ 120 0008 8093 0000 		sts RPM_DIFF,r24
+ 121               	/* epilogue start */
+  39:LEDarray.c    ****     return RPM_DIFF;
+  40:LEDarray.c    **** }
+ 123               	.LM2:
+ 124 000c 0895      		ret
+ 126               	.Lscope1:
+ 129               	.global	LEDarray
+ 131               	LEDarray:
+  41:LEDarray.c    **** 
+  42:LEDarray.c    **** void  LEDarray(unsigned int rpm){
+ 133               	.LM3:
+ 134               	.LFBB2:
+ 135               	/* prologue: function */
+ 136               	/* frame size = 0 */
+ 137               	/* stack size = 0 */
+ 138               	.L__stack_usage = 0
+  43:LEDarray.c    ****     
+  44:LEDarray.c    ****     if( ( rpm > rpm_disp + 250 ) || ( rpm < ( rpm_disp - 250 ) ) ){
+ 140               	.LM4:
+ 141 000e 2091 0000 		lds r18,rpm_disp
+ 142 0012 3091 0000 		lds r19,rpm_disp+1
+ 143 0016 A901      		movw r20,r18
+ 144 0018 4650      		subi r20,lo8(-(250))
+ 145 001a 5F4F      		sbci r21,hi8(-(250))
+ 146 001c 4817      		cp r20,r24
+ 147 001e 5907      		cpc r21,r25
+ 148 0020 00F0      		brlo .L3
+ 150               	.LM5:
+ 151 0022 2A5F      		subi r18,lo8(-(-250))
+ 152 0024 3040      		sbci r19,hi8(-(-250))
+ 153 0026 8217      		cp r24,r18
+ 154 0028 9307      		cpc r25,r19
+ 155 002a 00F4      		brsh .L4
+ 156               	.L3:
+  45:LEDarray.c    ****         rpm_disp = rpm;
+ 158               	.LM6:
+ 159 002c 9093 0000 		sts rpm_disp+1,r25
+ 160 0030 8093 0000 		sts rpm_disp,r24
+ 161               	.L4:
+  46:LEDarray.c    ****     }
+  47:LEDarray.c    **** 
+  48:LEDarray.c    ****     if( rpm >= RPM_FLASH ){     // Flash-sequence
+ 163               	.LM7:
+ 164 0034 2BE1      		ldi r18,hi8(7000)
+ 165 0036 8835      		cpi r24,lo8(7000)
+ 166 0038 9207      		cpc r25,r18
+ 167 003a 00F0      		brlo .L5
+  49:LEDarray.c    ****         OCR2A   = LEDarrayDuty_H;   // Compare value for LED bar duty
+ 169               	.LM8:
+ 170 003c 80E4      		ldi r24,lo8(64)
+ 171 003e 8093 B300 		sts 179,r24
+  50:LEDarray.c    ****         if( flash_cnt == FLASH_SPEED){
+ 173               	.LM9:
+ 174 0042 8091 0000 		lds r24,flash_cnt
+ 175 0046 9091 0000 		lds r25,flash_cnt+1
+ 176 004a 8931      		cpi r24,25
+ 177 004c 9105      		cpc r25,__zero_reg__
+ 178 004e 01F4      		brne .L6
+  51:LEDarray.c    ****             flash_cnt = 0;
+ 180               	.LM10:
+ 181 0050 1092 0000 		sts flash_cnt+1,__zero_reg__
+ 182 0054 1092 0000 		sts flash_cnt,__zero_reg__
+  52:LEDarray.c    ****             flash = ~flash;
+ 184               	.LM11:
+ 185 0058 8091 0000 		lds r24,flash
+ 186 005c 9091 0000 		lds r25,flash+1
+ 187 0060 8095      		com r24
+ 188 0062 9095      		com r25
+ 189 0064 9093 0000 		sts flash+1,r25
+ 190 0068 8093 0000 		sts flash,r24
+ 191 006c 00C0      		rjmp .L7
+ 192               	.L6:
+  53:LEDarray.c    ****         }else{
+  54:LEDarray.c    ****             flash_cnt++;
+ 194               	.LM12:
+ 195 006e 0196      		adiw r24,1
+ 196 0070 9093 0000 		sts flash_cnt+1,r25
+ 197 0074 8093 0000 		sts flash_cnt,r24
+ 198 0078 00C0      		rjmp .L7
+ 199               	.L5:
+  55:LEDarray.c    ****         }
+  56:LEDarray.c    ****     }else{                      // Normal-sequence
+  57:LEDarray.c    ****         flash = 0xff;
+ 201               	.LM13:
+ 202 007a 8FEF      		ldi r24,lo8(255)
+ 203 007c 90E0      		ldi r25,hi8(255)
+ 204 007e 9093 0000 		sts flash+1,r25
+ 205 0082 8093 0000 		sts flash,r24
+  58:LEDarray.c    ****         OCR2A   = LEDarrayDuty_L;   // Compare value for LED bar duty
+ 207               	.LM14:
+ 208 0086 88E0      		ldi r24,lo8(8)
+ 209 0088 8093 B300 		sts 179,r24
+ 210               	.L7:
+  59:LEDarray.c    ****     }
+  60:LEDarray.c    **** 
+  61:LEDarray.c    ****     
+  62:LEDarray.c    ****     if( rpm_disp < RPM_LOW ){
+ 212               	.LM15:
+ 213 008c 6091 0000 		lds r22,rpm_disp
+ 214 0090 7091 0000 		lds r23,rpm_disp+1
+ 215 0094 8FE0      		ldi r24,hi8(4000)
+ 216 0096 603A      		cpi r22,lo8(4000)
+ 217 0098 7807      		cpc r23,r24
+ 218 009a 00F4      		brsh .L8
+  63:LEDarray.c    ****         LED_scale = 0;
+ 220               	.LM16:
+ 221 009c 1092 0000 		sts LED_scale+1,__zero_reg__
+ 222 00a0 1092 0000 		sts LED_scale,__zero_reg__
+ 223 00a4 00C0      		rjmp .L9
+ 224               	.L8:
+  64:LEDarray.c    ****     }else if( rpm_disp == RPM_LOW ){
+ 226               	.LM17:
+ 227 00a6 2FE0      		ldi r18,hi8(4000)
+ 228 00a8 603A      		cpi r22,lo8(4000)
+ 229 00aa 7207      		cpc r23,r18
+ 230 00ac 01F4      		brne .L10
+  65:LEDarray.c    ****         LED_scale = Nstep;
+ 232               	.LM18:
+ 233 00ae 81E0      		ldi r24,lo8(1)
+ 234 00b0 90E0      		ldi r25,hi8(1)
+ 235 00b2 00C0      		rjmp .L12
+ 236               	.L10:
+  66:LEDarray.c    ****     }else if( rpm_disp > RPM_HIGH ){
+ 238               	.LM19:
+ 239 00b4 8BE1      		ldi r24,hi8(7001)
+ 240 00b6 6935      		cpi r22,lo8(7001)
+ 241 00b8 7807      		cpc r23,r24
+ 242 00ba 00F0      		brlo .L11
+  67:LEDarray.c    ****         LED_scale = Narray;
+ 244               	.LM20:
+ 245 00bc 88E0      		ldi r24,lo8(8)
+ 246 00be 90E0      		ldi r25,hi8(8)
+ 247 00c0 00C0      		rjmp .L12
+ 248               	.L11:
+  68:LEDarray.c    ****     }else{
+  69:LEDarray.c    ****         LED_scale = (unsigned int)((Narray)*(float)( rpm_disp - RPM_LOW )/(float)( RPM_HIGH - RPM_L
+ 250               	.LM21:
+ 251 00c2 605A      		subi r22,lo8(-(-4000))
+ 252 00c4 7F40      		sbci r23,hi8(-(-4000))
+ 253 00c6 80E0      		ldi r24,lo8(0)
+ 254 00c8 90E0      		ldi r25,hi8(0)
+ 255 00ca 00D0      		rcall __floatunsisf
+ 256 00cc 20E0      		ldi r18,lo8(0x41000000)
+ 257 00ce 30E0      		ldi r19,hi8(0x41000000)
+ 258 00d0 40E0      		ldi r20,hlo8(0x41000000)
+ 259 00d2 51E4      		ldi r21,hhi8(0x41000000)
+ 260 00d4 00D0      		rcall __mulsf3
+ 261 00d6 20E0      		ldi r18,lo8(0x453b8000)
+ 262 00d8 30E8      		ldi r19,hi8(0x453b8000)
+ 263 00da 4BE3      		ldi r20,hlo8(0x453b8000)
+ 264 00dc 55E4      		ldi r21,hhi8(0x453b8000)
+ 265 00de 00D0      		rcall __divsf3
+ 266 00e0 00D0      		rcall __fixunssfsi
+ 267 00e2 DC01      		movw r26,r24
+ 268 00e4 CB01      		movw r24,r22
+ 269               	.L12:
+ 270 00e6 9093 0000 		sts LED_scale+1,r25
+ 271 00ea 8093 0000 		sts LED_scale,r24
+ 272               	.L9:
+  70:LEDarray.c    ****     }
+  71:LEDarray.c    **** 
+  72:LEDarray.c    ****     send_bits_595_LED( ( ~( 0xff << (int)LED_scale ) ) & flash );
+ 274               	.LM22:
+ 275 00ee 8FEF      		ldi r24,lo8(255)
+ 276 00f0 90E0      		ldi r25,hi8(255)
+ 277 00f2 0090 0000 		lds r0,LED_scale
+ 278 00f6 00C0      		rjmp 2f
+ 279 00f8 880F      	1:	lsl r24
+ 280 00fa 991F      		rol r25
+ 281 00fc 0A94      	2:	dec r0
+ 282 00fe 02F4      		brpl 1b
+ 283 0100 8095      		com r24
+ 284 0102 9091 0000 		lds r25,flash
+ 285 0106 8923      		and r24,r25
+ 286 0108 00D0      		rcall send_bits_595_LED
+ 287               	/* epilogue start */
+  73:LEDarray.c    ****         
+  74:LEDarray.c    ****     
+  75:LEDarray.c    **** }...
+ 289               	.LM23:
+ 290 010a 0895      		ret
+ 292               	.Lscope2:
+ 293               		.comm RPM_DIFF,2,1
+ 294               	.global	flash_cnt
+ 295               	.global	flash_cnt
+ 296               		.section .bss
+ 299               	flash_cnt:
+ 300 0000 0000      		.skip 2,0
+ 301               	.global	flash
+ 302               		.data
+ 305               	flash:
+ 306 0000 FF00      		.word	255
+ 307               	.global	rpm_disp
+ 308               	.global	rpm_disp
+ 309               		.section .bss
+ 312               	rpm_disp:
+ 313 0002 0000      		.skip 2,0
+ 314               		.comm LED_scale,2,1
+ 320               		.text
+ 322               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 LEDarray.c
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:2      *ABS*:0000003f __SREG__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:3      *ABS*:0000003e __SP_H__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:4      *ABS*:0000003d __SP_L__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:5      *ABS*:00000034 __CCP__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:6      *ABS*:00000000 __tmp_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:7      *ABS*:00000001 __zero_reg__
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:107    .text:00000000 LEDarray_init
+                            *COM*:00000002 RPM_DIFF
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:131    .text:0000000e LEDarray
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:312    .bss:00000002 rpm_disp
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:299    .bss:00000000 flash_cnt
+/var/folders/v3/wysfpd052nz8jkbx04pk0ym80000gn/T//cc0498gg.s:305    .data:00000000 flash
+                            *COM*:00000002 LED_scale
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+__floatunsisf
+__mulsf3
+__divsf3
+__fixunssfsi
+send_bits_595_LED
